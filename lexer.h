@@ -79,9 +79,11 @@ Lexer::Lexer(string sourceFile)
 	source.open(sourceFile.c_str()); // open the given file
 	if(source.fail()) // if the file cannot be opened
 	{
-		cout << "Error opening source program file. Please make sure the specified path to the file is correct." << endl; // print appropriate error message
+		numErrors = -1; // specifies there is a file stream error
 		return; // exit with error
 	}
+	
+	cout << "Performing Lexical Analysis..." << endl;
 	
 	if(source.is_open())
 	{
@@ -287,7 +289,7 @@ Lexer::Lexer(string sourceFile)
 						}
 						else
 						{
-							cout << "ERROR: '" << c << "' is not a valid token." << endl;
+							cout << "[ERROR]Line " << lineNum << ": " << c << " is not a valid lexeme." << endl;
 							++numErrors; // increment the number of errors found
 						}
 					}
