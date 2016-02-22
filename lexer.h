@@ -5,6 +5,7 @@ using std::vector;
 // the token structure
 struct Token
 {
+	string value;	// the value of this token
 	string name;	// the name of this token
 	int lineNum;	// the line number this token is on
 };
@@ -19,7 +20,8 @@ class Lexer
 		int numErrors; // the number of errors encountered while scanning
 	// private class access
 	private:
-		void addToken(vector<Token> &, string &, int lineNum, int &);
+		void addToken(vector<Token> &, string &, string, int lineNum, int &);
+		string getTokenName(string val);
 };
 
 // the Lexer constructor
@@ -35,7 +37,7 @@ Lexer::Lexer(string sourceFile)
 	int lineNum = 1; // the line number the parser is currently on
 	int i = 0; // holder for the number to correspond with each valid character for matrix traversal
 	int state = 0; // the current DFA state
-	string tokName = ""; // variable to hold the name of tokens found while parsing
+	string tokVal = ""; // variable to hold the value of tokens found while parsing
 	numErrors = 0; // start with no errors
 	
 	// transition table for the DFA
@@ -238,7 +240,8 @@ Lexer::Lexer(string sourceFile)
 					if(readingCharList) // is this space part of a CharList?
 					{
 						cout << "Definite space character" << endl;
-						Token tok = Token{"space", lineNum}; // create a new token
+						string s = "T_SPACE";
+						Token tok = Token{"space", s, lineNum}; // create a new token
 						tokVec.push_back(tok); // append token to the token vector
 					}
 					loop = source.get(next); // go on to the next character
@@ -254,53 +257,54 @@ Lexer::Lexer(string sourceFile)
 				state = 0;
 			else
 				state = transitionTable[state][i];
-			cout << "PREV STATE: [" << fromState << "] NEW STATE: [" << state << "] CHAR: [" << next << "]" << endl;
-			tokName += next;
+			tokVal += next; // add the next character to the token value
+			
+			// cout << "PREV STATE: [" << fromState << "] NEW STATE: [" << state << "] CHAR: [" << next << "]" << endl;
 			
 			switch(state)
 			{
 				case 0: // we arrive here either due to the start of a new token or an error being found
-					int max; // number of characters to loop through in tokName
-					if(tokName.size() == 1) 
+					int max; // number of characters to loop through in tokVal
+					if(tokVal.size() == 1) 
 					{
-						max = 1; // iterate once if there is only one character in tokName
+						max = 1; // iterate once if there is only one character in tokVal
 						loop = source.get(next); // go on to the next character
 					}
 					else 
-						max = tokName.size()-1; // iterate through this loop for every character in tokName except the last
+						max = tokVal.size()-1; // iterate through this loop for every character in tokVal except the last
 					for(string::size_type j = 0; j < max; ++j)
 					{
-						char& c = tokName[j];
+						char& c = tokVal[j];
 						if((c >= 'a' && c <= 'z') || c == '=') // if the character c is a lowercase letter a-z OR '='
 						{
-							cout << "Definite id " << c << endl;
+							// cout << "Definite id " << c << endl;
 							string s; // string to hold the single character
 							stringstream ss; // string stream for converting single characters into strings
 							ss << c; // send character c to string stream ss 
 							ss >> s; // stream string into string s
-							Token tok = Token{s, lineNum}; // create a new token
+							Token tok = Token{s, "T_ID", lineNum}; // create a new token
 							tokVec.push_back(tok); // append token to the token vector
 						}
 						else
 						{
-							cout << "ERROR: " << c << " is not a valid token." << endl;
+							cout << "ERROR: '" << c << "' is not a valid token." << endl;
 							++numErrors; // increment the number of errors found
 						}
 					}
-					tokName = ""; // reset the token name
+					tokVal = ""; // reset the token name
 					continue; // jump to the end of this loop iteration
 					break;
 				case 1: // this state means we've found an id
-					cout << "Definite id " << tokName << endl;
-					addToken(tokVec, tokName, lineNum, state);
+					// cout << "Definite id " << tokVal << endl;
+					addToken(tokVec, tokVal, "T_ID", lineNum, state);
 					break;
 				case 2: // this state means we've found an integer
-					cout << "Definite integer " << tokName << endl;
-					addToken(tokVec, tokName, lineNum, state);
+					// cout << "Definite integer " << tokVal << endl;
+					addToken(tokVec, tokVal, "T_DIGIT", lineNum, state);
 					break;
 				case 30: // this state means we've found a reserve word (e.g. print)
-					cout << "Definite reserved word " << tokName << endl;
-					addToken(tokVec, tokName, lineNum, state);
+					// cout << "Definite reserved word " << tokVal << endl;
+					addToken(tokVec, tokVal, getTokenName(tokVal), lineNum, state);
 					break;
 				default:
 					// do nothing - we are not in an accepting state
@@ -310,18 +314,60 @@ Lexer::Lexer(string sourceFile)
 		}
 	}
 	source.close(); // close the file input streams
-	// return 0; // return successful
 }
 
 // function to add a token to the token vector
 // tokVec	: the token vector, to add tokens to
-// tokName	: the name of the token, passed by reference for manipulation
+// tokVal	: the value of the token, passed by reference for manipulation
+// tokName	: the name of the token
 // lineNum	: the current line number we are scanning
 // state	: the current state, to be set to 0
-void Lexer::addToken(vector<Token> & tokVec, string & tokName, int lineNum, int & state)
+void Lexer::addToken(vector<Token> & tokVec, string & tokVal, string tokName, int lineNum, int & state)
 {
-	Token tok = Token{tokName, lineNum};
+	Token tok = Token{tokVal, tokName, lineNum};
 	tokVec.push_back(tok); // push the token to the back of the token vector
-	tokName = ""; // reset the token name
+	tokVal = ""; // reset the token name
 	state = 0; // reset the state
+}
+
+// function to get the corresponding name of a token value if it is not T_ID or T_DIGIT
+// value	: the value of the token
+// returns	: the name of the token
+string Lexer::getTokenName(string val)
+{
+	if(val == "+")
+		return "T_PLUS";
+	if(val == "{")
+		return "T_OPEN_BRACE";
+	if(val == "}")
+		return "T_CLOSE_BRACE";
+	if(val == "(")
+		return "T_OPEN_PAREN";
+	if(val == ")")
+		return "T_CLOSE_PAREN";
+	if(val == "\"")
+		return "T_QUOTE";
+	if(val == "$")
+		return "T_EOF";
+	if(val == "==")
+		return "T_EQUALS";
+	if(val == "!=")
+		return "T_NOT_EQUALS";
+	if(val == "false")
+		return "T_FALSE";
+	if(val == "true")
+		return "T_TRUE";
+	if(val == "while")
+		return "T_WHILE";
+	if(val == "print")
+		return "T_PRINT";
+	if(val == "int")
+		return "T_INT";
+	if(val == "string")
+		return "T_STRING";
+	if(val == "boolean")
+		return "T_BOOLEAN";
+	if(val == "if")
+		return "T_IF";
+	return "UNKNOWN_NAME"; // this should never occur, but is here just in case, and for testing
 }
