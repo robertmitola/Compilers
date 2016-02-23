@@ -2,13 +2,17 @@
 #include <fstream>
 #include <string>
 #include <sstream>
-#include <vector>
+#include <iomanip>
+#include <queue>
 
-#include "lexer.h"
+#include "lexer.h" 	// The Lexer
+#include "parser.h"	// The Parser
 
 using namespace std;
 using std::string;
-using std::vector;
+using std::queue;
+using std::setw;
+using std::cout;
 
 int main()
 {
@@ -16,10 +20,10 @@ int main()
 	
 	////////// LEX //////////////////////////////////////////////////
 	
-	cout << "Opening source program file..." << endl;
+	cout << endl << "Opening source program file..." << endl << endl;
 	
-	Lexer lex(source); // run the lexer by constructing it
-	vector<Token> vec = lex.tokVec; // retreive the token vector
+	Lexer lex(source); // run the lexer by constructing one
+	queue<Token> que = lex.tokQue; // retreive the token queue
 	
 	if(lex.numErrors == -1) // file stream error
 	{
@@ -27,20 +31,36 @@ int main()
 		return 1; // exit with errors
 	}
 	
+	// report lexical errors here
+		cout << endl << "[" << lex.numErrors << " lexical errors found.]" << endl << endl;
+	
 	// catch lexical errors
 	if(lex.numErrors > 0)
 	{
-		// report errors here
-		cout << "[" << lex.numErrors << " errors found.]" << endl;
-		
 		return 1; // exit with errors
 	}
 	
-	vector<Token>::iterator it;
-	for(it = vec.begin(); it != vec.end(); ++it)
-		cout << "[NAME: "  << it->name << "] [VALUE: " << it->value << "] [LINE: " << it->lineNum << "]" << endl;
+	// print out the token information
+	cout <<
+		"______________________________________________________________________" << endl <<
+		setw(30) << left << "" << "TOKEN LIST" << setw(30) << right << "" << endl <<
+		"______________________________________________________________________" << endl;
+	while(!que.empty())
+	{
+		cout << left <<
+			"[NAME: " << setw(15) << que.front().name << "]" << 
+			"[VALUE: " << setw(10) << que.front().value << "]" << 
+			"[LINE: " << setw(20) << que.front().lineNum << "]" << endl;
+		que.pop();
+	}
+	cout << "______________________________________________________________________" << endl;
+		
+	// indicate completion lexical analysis
+	cout << endl << "Lexical Analysis complete!" << endl;
 	
 	////////// PARSE ////////////////////////////////////////////////
+	Parser parser(lex.tokQue); // run the Parser by constructing one
+	
 	
 	return 0; // exit successful
 }

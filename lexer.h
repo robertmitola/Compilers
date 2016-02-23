@@ -1,8 +1,8 @@
 using namespace std;
 using std::string;
-using std::vector;
+using std::queue;
 
-// the token structure
+// the Token structure
 struct Token
 {
 	string value;	// the value of this token
@@ -16,12 +16,12 @@ class Lexer
 	// public class access
 	public:
 		Lexer(string); // constructor
-		vector<Token> tokVec; // a vector to hold all the resulting tokens
+		queue<Token> tokQue; // a quetor to hold all the resulting tokens
 		int numErrors; // the number of errors encountered while scanning
 	// private class access
 	private:
-		void addToken(vector<Token> &, string &, string, int lineNum, int &);
-		string getTokenName(string val);
+		void addToken(queue<Token>&, string&, string, int, int&);
+		string getTokenName(string);
 };
 
 // the Lexer constructor
@@ -87,11 +87,16 @@ Lexer::Lexer(string sourceFile)
 	
 	if(source.is_open())
 	{
-		bool loop = source.get(next); // store the next character in next and set loop to false if this is the end of file
+		// store the next character in next and set loop to false if this is the end of file
+		// static casting to correct Microsoft VS 2013 compiler istream to bool conversion error
+		bool loop = static_cast<bool> (source.get(next)); 
 		bool readingCharList = false; // true if the lexer should be reading a CharList
 		while(loop)
 		{
 			bool error = false; // becomes true if a character found is not a part of the grammar
+			bool newline = false; // becomes true if a character found is the newline character
+			bool spaceChar = false; // becomes true if a space is found in a CharList
+			// get the int counterpart to the current scanned char for state table traversal
 			switch(next)
 			{
 				case 'a':
@@ -232,30 +237,28 @@ Lexer::Lexer(string sourceFile)
 					break;
 				case '\n':
 					readingCharList = false; // the lexer should NOT include \n in a CharList
-					loop = source.get(next); // go on to the next character
-					lineNum++; // incremenet the current line number
-					// state = 0; // ROB												ROB ROB 			ROB !!!!!!!!!!!!!!!!
-					// ^^ you'll have to find some other way to handle this
-					continue; // jump to the end of this loop iteration
+					newline = true;
+					break;
+				case '\r':
+					readingCharList = false; // the lexer should NOT include \n in a CharList
+					newline = true;
 					break;
 				case ' ':
-					if(readingCharList) // is this space part of a CharList?
+					if(!readingCharList) // is this space not part of a CharList?
 					{
-						cout << "Definite space character" << endl;
-						string s = "T_SPACE";
-						Token tok = Token{"space", s, lineNum}; // create a new token
-						tokVec.push_back(tok); // append token to the token vector
+						loop = static_cast<bool> (source.get(next)); // go on to the next character
+						continue; // jump to the end of this loop iteration
 					}
-					loop = source.get(next); // go on to the next character
-					continue; // jump to the end of this loop iteration
+					// this space IS part of a CharList
+					spaceChar = true;
 					break;
 				default:
 					error = true; // this character is not found in the grammar
 					break;
 			}
 			
-			int fromState = state; // for testing - delete
-			if(error)
+			int fromState = state; // for testing
+			if(error || newline || spaceChar)
 				state = 0;
 			else
 				state = transitionTable[state][i];
@@ -270,23 +273,32 @@ Lexer::Lexer(string sourceFile)
 					if(tokVal.size() == 1) 
 					{
 						max = 1; // iterate once if there is only one character in tokVal
-						loop = source.get(next); // go on to the next character
+						loop = static_cast<bool> (source.get(next)); // go on to the next character
 					}
 					else 
 						max = tokVal.size()-1; // iterate through this loop for every character in tokVal except the last
 					for(string::size_type j = 0; j < max; ++j)
 					{
 						char& c = tokVal[j];
-						if((c >= 'a' && c <= 'z') || c == '=') // if the character c is a lowercase letter a-z OR '='
+						if((c >= 'a' && c <= 'z') || c == '=' || c == ' ') // if the character c is a lowercase letter a-z OR '=' OR ' ' (space char)
 						{
-							// cout << "Definite id " << c << endl;
+							// cout << "Definite " << c << endl;
 							string s; // string to hold the single character
 							stringstream ss; // string stream for converting single characters into strings
 							ss << c; // send character c to string stream ss 
 							ss >> s; // stream string into string s
-							Token tok = Token{s, "T_ID", lineNum}; // create a new token
-							tokVec.push_back(tok); // append token to the token vector
+							string name; // name of the token
+							if(c == '=') name = "T_ASSIGN";
+							else if(c == ' ') name = "T_SPACE";
+							else name = "T_ID";
+							Token tok = Token{s, name, lineNum}; // create a new token
+							tokQue.push(tok); // append token to the token quetor
 						}
+						else if(c == '\n' || c == '\r') // new line 
+						{
+							lineNum++; // incremenet the current line number
+							// also effectively ends token analysis at the newline char
+						}					
 						else
 						{
 							cout << "[ERROR]Line " << lineNum << ": " << c << " is not a valid lexeme." << endl;
@@ -298,36 +310,36 @@ Lexer::Lexer(string sourceFile)
 					break;
 				case 1: // this state means we've found an id
 					// cout << "Definite id " << tokVal << endl;
-					addToken(tokVec, tokVal, "T_ID", lineNum, state);
+					addToken(tokQue, tokVal, "T_ID", lineNum, state);
 					break;
 				case 2: // this state means we've found an integer
 					// cout << "Definite integer " << tokVal << endl;
-					addToken(tokVec, tokVal, "T_DIGIT", lineNum, state);
+					addToken(tokQue, tokVal, "T_DIGIT", lineNum, state);
 					break;
 				case 30: // this state means we've found a reserve word (e.g. print)
 					// cout << "Definite reserved word " << tokVal << endl;
-					addToken(tokVec, tokVal, getTokenName(tokVal), lineNum, state);
+					addToken(tokQue, tokVal, getTokenName(tokVal), lineNum, state);
 					break;
 				default:
 					// do nothing - we are not in an accepting state
 					break;
 			}
-			loop = source.get(next); // go on to the next character
+			loop = static_cast<bool> (source.get(next)); // go on to the next character
 		}
 	}
 	source.close(); // close the file input streams
 }
 
-// function to add a token to the token vector
-// tokVec	: the token vector, to add tokens to
+// function to add a token to the token quetor
+// tokQue	: the token quetor, to add tokens to
 // tokVal	: the value of the token, passed by reference for manipulation
 // tokName	: the name of the token
 // lineNum	: the current line number we are scanning
 // state	: the current state, to be set to 0
-void Lexer::addToken(vector<Token> & tokVec, string & tokVal, string tokName, int lineNum, int & state)
+void Lexer::addToken(queue<Token>& tokQue, string& tokVal, string tokName, int lineNum, int& state)
 {
 	Token tok = Token{tokVal, tokName, lineNum};
-	tokVec.push_back(tok); // push the token to the back of the token vector
+	tokQue.push(tok); // push the token to the back of the token quetor
 	tokVal = ""; // reset the token name
 	state = 0; // reset the state
 }
@@ -337,6 +349,7 @@ void Lexer::addToken(vector<Token> & tokVec, string & tokVal, string tokName, in
 // returns	: the name of the token
 string Lexer::getTokenName(string val)
 {
+	// I used if statements here since C++ switch statements cannot handle strings
 	if(val == "+")
 		return "T_PLUS";
 	if(val == "{")
