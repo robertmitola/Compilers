@@ -32,7 +32,8 @@ int main()
 	}
 	
 	// report lexical errors here
-		cout << endl << "[" << lex.numErrors << " lexical errors found.]" << endl << endl;
+		cout << endl << "[" << lex.numErrors << " lexical errors found.]"
+		<< " [" << lex.numWarnings << " lexical warnings found.]" << endl << endl;
 	
 	// catch lexical errors
 	if(lex.numErrors > 0)

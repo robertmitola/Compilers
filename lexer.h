@@ -18,8 +18,11 @@ class Lexer
 		Lexer(string); // constructor
 		queue<Token> tokQue; // a quetor to hold all the resulting tokens
 		int numErrors; // the number of errors encountered while scanning
+		int numWarnings; // the numbers of warnings encountered while scanning
 	// private class access
 	private:
+		bool readingCharList; // variable to determine if we are in a CharList or not
+		bool warnEOF; // true if the user forgets the $ token
 		void addToken(queue<Token>&, string&, string, int, int&);
 		string getTokenName(string);
 };
@@ -39,6 +42,8 @@ Lexer::Lexer(string sourceFile)
 	int state = 0; // the current DFA state
 	string tokVal = ""; // variable to hold the value of tokens found while parsing
 	numErrors = 0; // start with no errors
+	warnEOF = true; // start off assuming EOF token has been omitted
+	numWarnings = 0;
 	
 	// transition table for the DFA
 	int transitionTable [31][45] = // characters x states
@@ -83,14 +88,14 @@ Lexer::Lexer(string sourceFile)
 		return; // exit with error
 	}
 	
-	cout << "Performing Lexical Analysis..." << endl;
+	cout << "Performing Lexical Analysis..." << endl << endl;
 	
 	if(source.is_open())
 	{
 		// store the next character in next and set loop to false if this is the end of file
 		// static casting to correct Microsoft VS 2013 compiler istream to bool conversion error
 		bool loop = static_cast<bool> (source.get(next)); 
-		bool readingCharList = false; // true if the lexer should be reading a CharList
+		readingCharList = false; // true if the lexer should be reading a CharList
 		while(loop)
 		{
 			bool error = false; // becomes true if a character found is not a part of the grammar
@@ -223,7 +228,6 @@ Lexer::Lexer(string sourceFile)
 					i = 40;
 					break;
 				case '"':
-					readingCharList = !readingCharList; // either start or end quotes
 					i = 41;
 					break;
 				case '$':
@@ -235,12 +239,13 @@ Lexer::Lexer(string sourceFile)
 				case '!':
 					i = 44;
 					break;
-				case '\n':
-					readingCharList = false; // the lexer should NOT include \n in a CharList
-					newline = true;
-					break;
-				case '\r':
-					readingCharList = false; // the lexer should NOT include \n in a CharList
+				case '\n': // newline
+				case '\r': // carriage return (newline)
+					if(readingCharList) // newlines not allowed in CharLists
+					{
+						cout << "[ERROR]Line " << lineNum << ": " << "The newline character is not a valid character token." << endl;
+						++numErrors; // increment the number of errors found
+					}
 					newline = true;
 					break;
 				case ' ':
@@ -251,6 +256,16 @@ Lexer::Lexer(string sourceFile)
 					}
 					// this space IS part of a CharList
 					spaceChar = true;
+					break;
+				case '\t':
+					if(readingCharList) // tabs not allowed in CharLists
+					{
+						cout << "[ERROR]Line " << lineNum << ": " << "The tab character is not a valid character token." << endl;
+						++numErrors; // increment the number of errors found
+						error = true;
+					}
+					loop = static_cast<bool> (source.get(next)); // go on to the next character
+					continue; // jump to the end of this loop iteration
 					break;
 				default:
 					error = true; // this character is not found in the grammar
@@ -327,6 +342,31 @@ Lexer::Lexer(string sourceFile)
 			loop = static_cast<bool> (source.get(next)); // go on to the next character
 		}
 	}
+	
+	// handle lex warnings
+	if(warnEOF) // forgot $
+	{
+		Token tok = Token{"$", "T_EOF", lineNum}; // create a new EOF token
+		tokQue.push(tok); // append token to the token quetor
+		cout << endl << "[WARN]Line " << lineNum << ": Programs must include the End of File character $. It has been added to the token list for parsing." << endl; // warn user
+		++numWarnings; // increment number of warnings
+	}
+	else
+	{
+		queue<Token> temp = tokQue;
+		Token lastTok;
+		while(!temp.empty())
+		{
+			lastTok = temp.front(); // will eventually become the last token in the queue
+			temp.pop();
+		}
+		if(lastTok.name != "T_EOF") // EOF token exists, but not at end
+		{
+			cout << endl << "[WARN]Line " << lastTok.lineNum << ": End of File character $ found, but not at the end of program. Be aware any code after the $ will not be compiled." << endl; // warn user
+			++numWarnings; // increment number of warnings
+		}
+	}
+	
 	source.close(); // close the file input streams
 }
 
@@ -361,9 +401,15 @@ string Lexer::getTokenName(string val)
 	if(val == ")")
 		return "T_CLOSE_PAREN";
 	if(val == "\"")
+	{
+		readingCharList = !readingCharList; // either start or end quotes
 		return "T_QUOTE";
+	}
 	if(val == "$")
+	{
+		warnEOF = false; // the user remembers to include the EOF token
 		return "T_EOF";
+	}
 	if(val == "==")
 		return "T_EQUALS";
 	if(val == "!=")
