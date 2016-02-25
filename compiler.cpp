@@ -14,9 +14,20 @@ using std::queue;
 using std::setw;
 using std::cout;
 
-int main()
+int main(int argc, char *argv[])
 {
-	string source = "test.txt";
+	////////// SETUP ////////////////////////////////////////////////
+	
+	string source; // variable to store the source program filepath
+	if(argc > 1) // if the user entered a program filepath for compiling
+	{
+		source = argv[1]; // set the source variable to that program filepath
+	}
+	else // if s/he didn't...
+	{
+		cout << endl << "The filepath to your program must be entered as an argument when running this parser." << endl;
+		return 1; // exit with errors
+	}
 	
 	////////// LEX //////////////////////////////////////////////////
 	
@@ -32,10 +43,10 @@ int main()
 	}
 	
 	// report lexical errors here
-		cout << endl << "[" << lex.numErrors << " lexical errors found.]"
-		<< " [" << lex.numWarnings << " lexical warnings found.]" << endl << endl;
+	cout << endl << "[" << lex.numErrors << " lexical error(s) found.]"
+	<< " [" << lex.numWarnings << " lexical warning(s) found.]" << endl << endl;
 	
-	// catch lexical errors
+	// exit if lexical errors were found
 	if(lex.numErrors > 0)
 	{
 		return 1; // exit with errors
@@ -56,12 +67,23 @@ int main()
 	}
 	cout << "______________________________________________________________________" << endl;
 		
-	// indicate completion lexical analysis
+	// indicate completion of lexical analysis
 	cout << endl << "Lexical Analysis complete!" << endl;
 	
 	////////// PARSE ////////////////////////////////////////////////
-	Parser parser(lex.tokQue); // run the Parser by constructing one
+	Parser parse(lex.tokQue); // run the Parser by constructing one
 	
+	// report parser errors here
+	cout << endl << "[" << parse.numErrors << " parse error(s) found.]" << endl;
+	
+	// exit if parser errors were found
+	if(parse.numErrors > 0)
+	{
+		return 1; // exit with errors
+	}
+	
+	// indicate completion of parsing
+	cout << endl << "Parsing complete!" << endl;
 	
 	return 0; // exit successful
 }

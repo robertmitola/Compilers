@@ -8,6 +8,7 @@ class Parser
 	// public class access
 	public:
 		Parser(queue<Token>&); // constructor
+		int numErrors; // // number of parser errors
 	// private class access
 	private:
 		string error; // the error message to return
@@ -61,12 +62,19 @@ class Parser
 // que	: reference to the token queue the Parser should use
 Parser::Parser(queue<Token>& que)
 {
+	numErrors = 0; // no errors at the start
 	error = ""; // set error to nothing
 	stmtError= ""; // set statement error to nothing
-	if (parseProgram(que))
-		cout << "Praise the sun!" << endl;
-	else
-		cout << "[ERROR]Line " << errorLine << ": " << error << endl;
+	if (!parseProgram(que))
+	{
+		if(stmtError != "") // if there was a semi-successful statement
+		{
+			error = stmtError; // error message should match the error for the most likely statement
+			errorLine = stmtErrorLine; // error line should match the error line for the most likely statement
+		}
+		cout << "[ERROR]Line " << errorLine << ": " << error << endl; // report the error
+		++numErrors; // increment the number of parser errors
+	}
 }
 
 // UTILITY FUNCTIONS
@@ -85,7 +93,7 @@ Token Parser::hpop(queue<Token>& que)
 
 bool Parser::parseProgram(queue<Token>& que)
 {
-	cout << "parseProgram" << endl;
+	// cout << "parseProgram" << endl;
 	return 
 		parseBlock(que) && 
 		matchT_EOF(hpop(que));
@@ -93,7 +101,7 @@ bool Parser::parseProgram(queue<Token>& que)
 
 bool Parser::parseBlock(queue<Token>& que)
 {
-	cout << "parseBlock" << endl;
+	// cout << "parseBlock" << endl;
 	return 
 		matchT_OPEN_BRACE(hpop(que)) && 
 		parseStatementList(que) && 
@@ -102,7 +110,7 @@ bool Parser::parseBlock(queue<Token>& que)
 
 bool Parser::parseStatementList(queue<Token>& que)
 {
-	cout << "parsStmtLst" << endl;
+	// cout << "parsStmtLst" << endl;
 	queue<Token> savedQue = que; // save queue for reverting since epsilon is involved
 	if(parseStatement(que))
 		return parseStatementList(que);
@@ -115,7 +123,7 @@ bool Parser::parseStatementList(queue<Token>& que)
 
 bool Parser::parseStatement(queue<Token>& que)
 {
-	cout << "parseStmt" << endl;
+	// cout << "parseStmt" << endl;
 	queue<Token> savedQue = que; // save queue for reverting since multiple paths are involved
 	if (parsePrintStatement(que)) return true; else que = savedQue;
 	if (parseAssignmentStatement(que)) return true; else que = savedQue;
@@ -123,17 +131,12 @@ bool Parser::parseStatement(queue<Token>& que)
 	if (parseWhileStatement(que)) return true; else que = savedQue;
 	if (parseVarDecl(que)) return true; else que = savedQue;
 	if (parseBlock(que)) return true; else que = savedQue;
-	if(stmtError != "")
-	{
-		error = stmtError; // error message should match the error for the most likely statement
-		errorLine = stmtErrorLine; // error line should match the error line for the most likely statement
-	}
 	return false;
 }
 
 bool Parser::parsePrintStatement(queue<Token>& que)
 {
-	cout << "parsePrintStmt" << que.front().name << endl;
+	// cout << "parsePrintStmt" << que.front().name << endl;
 	queue<Token> savedQue = que; // save queue for reverting
 	if (matchT_PRINT(hpop(que)))
 		if(matchT_OPEN_PAREN(hpop(que)) && parseExpression(que) && matchT_CLOSE_PAREN(hpop(que)))
@@ -149,7 +152,7 @@ bool Parser::parsePrintStatement(queue<Token>& que)
 
 bool Parser::parseAssignmentStatement(queue<Token>& que)
 { 
-	cout << "parseAssignStmt" << endl;
+	// cout << "parseAssignStmt" << endl;
 	queue<Token> savedQue = que; // save queue for reverting
 	if(matchT_ID(hpop(que)))
 		if(matchT_ASSIGN(hpop(que)) && parseExpression(que))
@@ -165,7 +168,7 @@ bool Parser::parseAssignmentStatement(queue<Token>& que)
 
 bool Parser::parseVarDecl(queue<Token>& que)
 {
-	cout << "parseVarDecl" << endl;
+	// cout << "parseVarDecl" << endl;
 	queue<Token> savedQue = que; // save queue for reverting
 	if(parseType(que))
 		if(matchT_ID(hpop(que)))
@@ -181,7 +184,7 @@ bool Parser::parseVarDecl(queue<Token>& que)
 
 bool Parser::parseWhileStatement(queue<Token>& que)
 {
-	cout << "parseWhileStmt" << endl;
+	// cout << "parseWhileStmt" << endl;
 	queue<Token> savedQue = que; // save queue for reverting
 	if(matchT_WHILE(hpop(que)))
 		if(parseBooleanExpression(que) && parseBlock(que))
@@ -197,7 +200,7 @@ bool Parser::parseWhileStatement(queue<Token>& que)
 
 bool Parser::parseIfStatement(queue<Token>& que)
 {
-	cout << "parseIfStmt" << endl;
+	// cout << "parseIfStmt" << endl;
 	queue<Token> savedQue = que; // save queue for reverting
 	if(matchT_IF(hpop(que)))
 		if(parseBooleanExpression(que) && parseBlock(que))
@@ -213,7 +216,7 @@ bool Parser::parseIfStatement(queue<Token>& que)
 
 bool Parser::parseType(queue<Token>& que)
 {
-	cout << "parseType" << endl;
+	// cout << "parseType" << endl;
 	queue<Token> savedQue = que; // save queue for reverting since multiple paths are involved
 	if (matchT_INT(hpop(que))) return true; else que = savedQue;
 	if (matchT_STRING(hpop(que))) return true; else que = savedQue;
@@ -223,7 +226,7 @@ bool Parser::parseType(queue<Token>& que)
 
 bool Parser::parseExpression(queue<Token>& que)
 {
-	cout << "parseExpr" << endl;
+	// cout << "parseExpr" << endl;
 	queue<Token> savedQue = que; // save queue for reverting since multiple paths are involved
 	if (matchT_ID(hpop(que))) return true; else que = savedQue;
 	return
@@ -234,7 +237,7 @@ bool Parser::parseExpression(queue<Token>& que)
 
 bool Parser::parseIntExpression(queue<Token>& que)
 {
-	cout << "parseIntExpr" << endl;
+	// cout << "parseIntExpr" << endl;
 	queue<Token> savedQue = que; // save queue for reverting since multiple paths are involved
 	if(matchT_DIGIT(hpop(que)) &&
 		matchT_PLUS(hpop(que)) &&
@@ -249,7 +252,7 @@ bool Parser::parseIntExpression(queue<Token>& que)
 
 bool Parser::parseStringExpression(queue<Token>& que)
 {
-	cout << "parseStringExpr" << endl;
+	// cout << "parseStringExpr" << endl;
 	queue<Token> savedQue = que; // save queue for reverting
 	if( matchT_QUOTE(hpop(que)) &&
 		parseCharList(que) &&
@@ -262,11 +265,13 @@ bool Parser::parseStringExpression(queue<Token>& que)
 
 bool Parser::parseBooleanExpression(queue<Token>& que)
 {
-	cout << "parseBoolExpr" << endl;
+	// cout << "parseBoolExpr" << endl;
 	queue<Token> savedQue = que; // save queue for reverting since multiple paths are involved
 	if(matchT_OPEN_PAREN(hpop(que)) &&
 		parseExpression(que) &&
-		parseBoolOp(que))
+		parseBoolOp(que) &&
+		parseExpression(que) &&
+		matchT_CLOSE_PAREN(hpop(que))) 
 		return true;
 	else
 	{
@@ -277,7 +282,7 @@ bool Parser::parseBooleanExpression(queue<Token>& que)
 
 bool Parser::parseBoolOp(queue<Token>& que)
 {
-	cout << "parseBoolOp" << endl;
+	// cout << "parseBoolOp" << endl;
 	queue<Token> savedQue = que; // save queue for reverting
 	Token tok = hpop(que); // only two paths here, each taking just the head token
 	if(matchT_EQUALS(tok) ||
@@ -289,7 +294,7 @@ bool Parser::parseBoolOp(queue<Token>& que)
 
 bool Parser::parseCharList(queue<Token>& que)
 {
-	cout << "parseCharList" << endl;
+	// cout << "parseCharList" << endl;
 	charList = true; // we are now inside a charList
 	queue<Token> savedQue = que; // save queue for reverting since epsilon is involved
 	Token tok = hpop(que); // only two paths here, each taking just the head token
@@ -306,7 +311,7 @@ bool Parser::parseCharList(queue<Token>& que)
 
 bool Parser::parseBoolval(queue<Token>& que)
 {
-	cout << "parseBoolVal" << endl;
+	// cout << "parseBoolVal" << endl;
 	queue<Token> savedQue = que; // save queue for reverting
 	Token tok = hpop(que); // only two paths here, each taking just the head token
 	if(matchT_TRUE(tok) ||
@@ -320,7 +325,7 @@ bool Parser::parseBoolval(queue<Token>& que)
 
 bool Parser::matchT_DIGIT(Token tok)
 {
-	cout << "	match digit " << tok.value << endl;
+	// cout << "	match digit " << tok.value << endl;
 	error = "[" + tok.value + "] is not a valid digit. Valid digits include natural numbers [0-9].";
 	errorLine = tok.lineNum;
 	return tok.name == "T_DIGIT";
@@ -328,7 +333,7 @@ bool Parser::matchT_DIGIT(Token tok)
 
 bool Parser::matchT_ID(Token tok)
 {
-	cout << "	match id " << tok.value << endl;
+	// cout << "	match id " << tok.value << endl;
 	if(!charList ) 
 		error = "[" + tok.value + "] is not a valid identifier. Valid identifiers include lowercase letters [a-z].";
 	else 
@@ -339,7 +344,7 @@ bool Parser::matchT_ID(Token tok)
 
 bool Parser::matchT_EOF(Token tok)
 {
-	cout << "	match eof " << tok.value << endl;
+	// cout << "	match eof " << tok.value << endl;
 	error = "Program cannot end with [" + tok.value + "]. Programs may only end with [$].";
 	errorLine = tok.lineNum;
 	return tok.name == "T_EOF";
@@ -347,14 +352,14 @@ bool Parser::matchT_EOF(Token tok)
 
 bool Parser::matchT_PLUS(Token tok)
 {
-	cout << "	match plus " << tok.value << endl;
+	// cout << "	match plus " << tok.value << endl;
 	// no error message here isnce an integer expression can also be just a digit, which is checked second
 	return tok.name == "T_PLUS";
 }
 
 bool Parser::matchT_ASSIGN(Token tok)
 {
-	cout << "	match assign " << tok.value << endl;
+	// cout << "	match assign " << tok.value << endl;
 	error = "Expecting the assignment operator [=]. Instead found the token [" + tok.value + "].";
 	errorLine = tok.lineNum;
 	return tok.name == "T_ASSIGN";
@@ -362,7 +367,7 @@ bool Parser::matchT_ASSIGN(Token tok)
 
 bool Parser::matchT_OPEN_BRACE(Token tok)
 {
-	cout << "	match open brace " << tok.value << endl;
+	// cout << "	match open brace " << tok.value << endl;
 	error = "Expecting an open brace [{] before the [" + tok.value + "].";
 	errorLine = tok.lineNum;
 	return tok.name == "T_OPEN_BRACE";
@@ -370,7 +375,7 @@ bool Parser::matchT_OPEN_BRACE(Token tok)
 
 bool Parser::matchT_CLOSE_BRACE(Token tok)
 {
-	cout << "	match close brace " << tok.value << endl;
+	// cout << "	match close brace " << tok.value << endl;
 	error = "Expecting a closing brace [}] before the [" + tok.value + "].";
 	errorLine = tok.lineNum;
 	return tok.name == "T_CLOSE_BRACE";
@@ -378,7 +383,7 @@ bool Parser::matchT_CLOSE_BRACE(Token tok)
 
 bool Parser::matchT_OPEN_PAREN(Token tok)
 {
-	cout << "	match open paren " << tok.value << endl;
+	// cout << "	match open paren " << tok.value << endl;
 	error = "Expecting an open parenthesis [(] before the [" + tok.value + "].";
 	errorLine = tok.lineNum;
 	return tok.name == "T_OPEN_PAREN";
@@ -386,7 +391,7 @@ bool Parser::matchT_OPEN_PAREN(Token tok)
 
 bool Parser::matchT_CLOSE_PAREN(Token tok)
 {
-	cout << "	match close paren " << tok.value << endl;
+	// cout << "	match close paren " << tok.value << endl;
 	error = "Expecting a closing parenthesis [)] before the [" + tok.value + "].";
 	errorLine = tok.lineNum;
 	return tok.name == "T_CLOSE_PAREN";
@@ -394,7 +399,7 @@ bool Parser::matchT_CLOSE_PAREN(Token tok)
 
 bool Parser::matchT_QUOTE(Token tok)
 {
-	cout << "	match quote " << tok.value << endl;
+	// cout << "	match quote " << tok.value << endl;
 	error = "Strings must be wrapped in quotation marks. Expecting a quote [\"] before the [" + tok.value + "].";
 	errorLine = tok.lineNum;
 	return tok.name == "T_QUOTE";
@@ -402,7 +407,7 @@ bool Parser::matchT_QUOTE(Token tok)
 
 bool Parser::matchT_EQUALS(Token tok)
 {
-	cout << "	match equals " << tok.value << endl;
+	// cout << "	match equals " << tok.value << endl;
 	error = "[" + tok.value + "] is not a valid boolean operator. Valid boolean operators include [==] and [!=].";
 	errorLine = tok.lineNum;
 	return tok.name == "T_EQUALS";
@@ -410,7 +415,7 @@ bool Parser::matchT_EQUALS(Token tok)
 
 bool Parser::matchT_NOT_EQUALS(Token tok)
 {
-	cout << "	match not equals " << tok.value << endl;
+	// cout << "	match not equals " << tok.value << endl;
 	error = "[" + tok.value + "] is not a valid boolean operator. Valid boolean operators include [==] and [!=].";
 	errorLine = tok.lineNum;
 	return tok.name == "T_NOT_EQUALS";
@@ -418,7 +423,7 @@ bool Parser::matchT_NOT_EQUALS(Token tok)
 
 bool Parser::matchT_FALSE(Token tok)
 {
-	cout << "	match false " << tok.value << endl;
+	// cout << "	match false " << tok.value << endl;
 	error = "[" + tok.value + "] is not a valid boolean value. Valid boolean values include [true] and [false].";
 	errorLine = tok.lineNum;
 	return tok.name == "T_FALSE";
@@ -426,7 +431,7 @@ bool Parser::matchT_FALSE(Token tok)
 
 bool Parser::matchT_TRUE(Token tok)
 {
-	cout << "	match true " << tok.value << endl;
+	// cout << "	match true " << tok.value << endl;
 	error = "[" + tok.value + "] is not a valid boolean value. Valid boolean values include [true] and [false].";
 	errorLine = tok.lineNum;
 	return tok.name == "T_TRUE";
@@ -434,7 +439,7 @@ bool Parser::matchT_TRUE(Token tok)
 
 bool Parser::matchT_WHILE(Token tok)
 {
-	cout << "	match while " << tok.value << endl;
+	// cout << "	match while " << tok.value << endl;
 	error = "Expecting the [while] keyword before the [" + tok.value + "].";
 	errorLine = tok.lineNum;
 	return tok.name == "T_WHILE";
@@ -442,7 +447,7 @@ bool Parser::matchT_WHILE(Token tok)
 
 bool Parser::matchT_PRINT(Token tok)
 {
-	cout << "	match print " << tok.value << endl;
+	// cout << "	match print " << tok.value << endl;
 	error = "Expecting the [print] keyword before the [" + tok.value + "].";
 	errorLine = tok.lineNum;
 	return tok.name == "T_PRINT";
@@ -450,7 +455,7 @@ bool Parser::matchT_PRINT(Token tok)
 
 bool Parser::matchT_STRING(Token tok)
 {
-	cout << "	match string " << tok.value << endl;
+	// cout << "	match string " << tok.value << endl;
 	error = "Expecting the [string] keyword before the [" + tok.value + "].";
 	errorLine = tok.lineNum;
 	return tok.name == "T_STRING";
@@ -458,7 +463,7 @@ bool Parser::matchT_STRING(Token tok)
 
 bool Parser::matchT_BOOLEAN(Token tok)
 {
-	cout << "	match bool " << tok.value << endl;
+	// cout << "	match bool " << tok.value << endl;
 	error = "Expecting the [boolean] keyword before the [" + tok.value + "].";
 	errorLine = tok.lineNum;
 	return tok.name == "T_BOOLEAN";
@@ -466,7 +471,7 @@ bool Parser::matchT_BOOLEAN(Token tok)
 
 bool Parser::matchT_INT(Token tok)
 {
-	cout << "	match int " << tok.value << endl;
+	// cout << "	match int " << tok.value << endl;
 	error = "Expecting the [int] keyword before the [" + tok.value + "].";
 	errorLine = tok.lineNum;
 	return tok.name == "T_INT";
@@ -474,7 +479,7 @@ bool Parser::matchT_INT(Token tok)
 
 bool Parser::matchT_IF(Token tok)
 {
-	cout << "	match if " << tok.value << endl;
+	// cout << "	match if " << tok.value << endl;
 	error = "Expecting keyword [if] before the [" + tok.value + "].";
 	errorLine = tok.lineNum;
 	return tok.name == "T_IF";
@@ -482,7 +487,7 @@ bool Parser::matchT_IF(Token tok)
 
 bool Parser::matchT_SPACE(Token tok)
 {
-	cout << "	match space " << tok.value << endl;
+	// cout << "	match space " << tok.value << endl;
 	error = "[" + tok.value + "] is not a valid character. Characters can only be lowercase letters [a-z] or the space character [ ].";
 	errorLine = tok.lineNum;
 	return tok.name == "T_SPACE";
