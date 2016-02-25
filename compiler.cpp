@@ -27,9 +27,16 @@ int main(int argc, char *argv[])
 	////////// SETUP ////////////////////////////////////////////////
 	
 	string source; // variable to store the source program filepath
+	bool verbose = false; // true if verbose output should occur
+	cout << argv[2] << endl;
 	if(argc > 1) // if the user entered a program filepath for compiling
 	{
 		source = argv[1]; // set the source variable to that program filepath
+		if(argc > 2)
+		{
+			string arg = argv[2];
+			if(arg == "verbose") verbose = true;
+		}
 	}
 	else // if s/he didn't...
 	{
@@ -60,26 +67,30 @@ int main(int argc, char *argv[])
 		return 1; // exit with errors
 	}
 	
-	// print out the token information
-	cout <<
-		"______________________________________________________________________" << endl <<
-		setw(30) << left << "" << "TOKEN LIST" << setw(30) << right << "" << endl <<
-		"______________________________________________________________________" << endl;
-	while(!que.empty())
+	// print out the token information if verbose is on
+	if(verbose)
 	{
-		cout << left <<
-			"[NAME: " << setw(15) << que.front().name << "]" << 
-			"[VALUE: " << setw(10) << que.front().value << "]" << 
-			"[LINE: " << setw(20) << que.front().lineNum << "]" << endl;
-		que.pop();
+		cout <<
+			"______________________________________________________________________" << endl <<
+			setw(30) << left << "" << "TOKEN LIST" << setw(30) << right << "" << endl <<
+			"______________________________________________________________________" << endl;
+		while(!que.empty())
+		{
+			cout << left <<
+				"[NAME: " << setw(15) << que.front().name << "]" << 
+				"[VALUE: " << setw(10) << que.front().value << "]" << 
+				"[LINE: " << setw(20) << que.front().lineNum << "]" << endl;
+			que.pop();
+		}
+		cout << "______________________________________________________________________" << endl;
 	}
-	cout << "______________________________________________________________________" << endl;
 		
 	// indicate completion of lexical analysis
 	cout << endl << "Lexical Analysis complete!" << endl;
 	
 	////////// PARSE ////////////////////////////////////////////////
-	Parser parse(lex.tokQue); // run the Parser by constructing one
+	cout << endl << "Performing Parsing..." << endl << endl;
+	Parser parse(lex.tokQue, verbose); // run the Parser by constructing one
 	
 	// report parser errors here
 	cout << endl << "[" << parse.numErrors << " parse error(s) found.]" << endl;
