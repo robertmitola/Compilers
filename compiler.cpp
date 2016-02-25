@@ -1,3 +1,11 @@
+/*
+ROBERT MITOLA
+ALAN LABOUSEUR
+MARIST COLLEGE
+CMPT 432 - DESIGN OF COMPILERS
+25 FEBRUARY 2016
+*/
+
 #include <iostream>
 #include <fstream>
 #include <string>

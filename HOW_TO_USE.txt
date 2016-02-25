@@ -1,0 +1,26 @@
+These steps assume you have already pulled all files from my Github repository and are storing them in the same folder.
+
+TO COMPILE (Assuming GCC Compiler):
+
+> Open command prompt.
+> Type "cd <path the the folder containing these files>" and hit ENTER.
+> Type "g++ compiler.cpp -o compiler" and hit ENTER. This will compile the compiler.cpp source file into an executable named compiler.exe.
+
+TO RUN:
+
+Note: This assumes you already have a working compiler.exe. If not, please follow the instructions TO COMPILE above.
+
+> Open command prompt.
+> Type "cd <path the the folder containing these files>" and hit ENTER.
+> Type "compiler <full name of source program file to compile>". It is important you include the source program file. Below are the names of all test files included in this repository, but you could of course create your own. If you are keeping source files elsewhere, the entire filepath must be the program argument.
+
+TEST FILES:
+
+test.txt
+test2.txt
+lex_errors.txt
+lex_warnings.txt
+lex_errors_warnings.txt
+parse_error1.txt
+parse_error2.txt
+parse_error3.txt
