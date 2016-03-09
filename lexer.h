@@ -306,7 +306,7 @@ Lexer::Lexer(string sourceFile)
 							if(c == '=') name = "T_ASSIGN";
 							else if(c == ' ') name = "T_SPACE";
 							else name = "T_ID";
-							Token tok = Token{s, name, lineNum}; // create a new token
+							Token tok = {s, name, lineNum}; // create a new token
 							tokQue.push(tok); // append token to the token quetor
 						}
 						else if(c == '\n' || c == '\r') // new line 
@@ -346,7 +346,7 @@ Lexer::Lexer(string sourceFile)
 	// handle lex warnings
 	if(warnEOF) // forgot $
 	{
-		Token tok = Token{"$", "T_EOF", lineNum}; // create a new EOF token
+		Token tok = {"$", "T_EOF", lineNum}; // create a new EOF token
 		tokQue.push(tok); // append token to the token quetor
 		cout << endl << "[WARN]Line " << lineNum << ": Programs must include the End of File character $. It has been added to the token list for parsing." << endl; // warn user
 		++numWarnings; // increment number of warnings
@@ -378,7 +378,7 @@ Lexer::Lexer(string sourceFile)
 // state	: the current state, to be set to 0
 void Lexer::addToken(queue<Token>& tokQue, string& tokVal, string tokName, int lineNum, int& state)
 {
-	Token tok = Token{tokVal, tokName, lineNum};
+	Token tok = {tokVal, tokName, lineNum};
 	tokQue.push(tok); // push the token to the back of the token quetor
 	tokVal = ""; // reset the token name
 	state = 0; // reset the state
