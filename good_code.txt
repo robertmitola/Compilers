@@ -1,0 +1,5 @@
+{
+print("inta")
+boolean d
+d = ("string" == 1)
+}$

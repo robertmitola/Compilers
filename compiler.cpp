@@ -112,7 +112,9 @@ int main(int argc, char *argv[])
 		// exit if lexical errors were found
 		if(lex.numErrors > 0)
 		{
-			return 1; // exit with errors
+			// skip to next program
+			programs.pop(); // on to the next program
+			continue; 
 		}
 	
 		// print out the token information if verbose is on
@@ -146,7 +148,9 @@ int main(int argc, char *argv[])
 		// exit if parser errors were found
 		if(parse.numErrors > 0)
 		{
-			return 1; // exit with errors
+			// skip to next program
+			programs.pop(); // on to the next program
+			continue; 
 		}
 	
 		// indicate completion of parsing

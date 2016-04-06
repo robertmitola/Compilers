@@ -301,7 +301,16 @@ bool Parser::parseCharList(queue<Token>& que)
 	charList = true; // we are now inside a charList
 	queue<Token> savedQue = que; // save queue for reverting since epsilon is involved
 	Token tok = hpop(que); // only two paths here, each taking just the head token
-	if(matchT_SPACE(tok) || matchT_ID(tok)) // space or char
+	if(matchT_SPACE(tok) || 
+		matchT_ID(tok) ||
+		matchT_FALSE(tok) ||
+		matchT_TRUE(tok) ||
+		matchT_WHILE(tok) ||
+		matchT_PRINT(tok) ||
+		matchT_STRING(tok) ||
+		matchT_BOOLEAN(tok) ||
+		matchT_INT(tok) ||
+		matchT_IF(tok)) // space, char, or any keyword comprised only of characters
 		parseCharList(que);
 	else
 	{
@@ -336,6 +345,7 @@ bool Parser::matchT_DIGIT(Token tok)
 		if(verbose) cout << "Matched a T_DIGIT." << endl;
 		return true;
 	}
+	return false;
 }
 
 bool Parser::matchT_ID(Token tok)
@@ -351,6 +361,7 @@ bool Parser::matchT_ID(Token tok)
 		if(verbose) cout << "Matched a T_ID." << endl;
 		return true;
 	}
+	return false;
 }
 
 bool Parser::matchT_EOF(Token tok)
@@ -363,6 +374,7 @@ bool Parser::matchT_EOF(Token tok)
 		if(verbose) cout << "Matched a T_EOF." << endl;
 		return true;
 	}
+	return false;
 }
 
 bool Parser::matchT_PLUS(Token tok)
@@ -374,6 +386,7 @@ bool Parser::matchT_PLUS(Token tok)
 		if(verbose) cout << "Matched a T_PLUS." << endl;
 		return true;
 	}
+	return false;
 }
 
 bool Parser::matchT_ASSIGN(Token tok)
@@ -386,6 +399,7 @@ bool Parser::matchT_ASSIGN(Token tok)
 		if(verbose) cout << "Matched a T_ASSIGN." << endl;
 		return true;
 	}
+	return false;
 }
 
 bool Parser::matchT_OPEN_BRACE(Token tok)
@@ -395,9 +409,10 @@ bool Parser::matchT_OPEN_BRACE(Token tok)
 	errorLine = tok.lineNum;
 	if(tok.name == "T_OPEN_BRACE")
 	{
-		if(verbose) cout << "Matched a T__OPEN_BRACE." << endl;
+		if(verbose) cout << "Matched a T_OPEN_BRACE." << endl;
 		return true;
 	}
+	return false;
 }
 
 bool Parser::matchT_CLOSE_BRACE(Token tok)
@@ -410,6 +425,7 @@ bool Parser::matchT_CLOSE_BRACE(Token tok)
 		if(verbose) cout << "Matched a T_CLOSE_BRACE." << endl;
 		return true;
 	}
+	return false;
 }
 
 bool Parser::matchT_OPEN_PAREN(Token tok)
@@ -422,6 +438,7 @@ bool Parser::matchT_OPEN_PAREN(Token tok)
 		if(verbose) cout << "Matched a T_OPEN_PAREN." << endl;
 		return true;
 	}
+	return false;
 }
 
 bool Parser::matchT_CLOSE_PAREN(Token tok)
@@ -434,6 +451,7 @@ bool Parser::matchT_CLOSE_PAREN(Token tok)
 		if(verbose) cout << "Matched a T_CLOSE_PAREN." << endl;
 		return true;
 	}
+	return false;
 }
 
 bool Parser::matchT_QUOTE(Token tok)
@@ -446,6 +464,7 @@ bool Parser::matchT_QUOTE(Token tok)
 		if(verbose) cout << "Matched a T_QUOTE." << endl;
 		return true;
 	}
+	return false;
 }
 
 bool Parser::matchT_EQUALS(Token tok)
@@ -458,6 +477,7 @@ bool Parser::matchT_EQUALS(Token tok)
 		if(verbose) cout << "Matched a T_EQUALS." << endl;
 		return true;
 	}
+	return false;
 }
 
 bool Parser::matchT_NOT_EQUALS(Token tok)
@@ -470,6 +490,7 @@ bool Parser::matchT_NOT_EQUALS(Token tok)
 		if(verbose) cout << "Matched a T_NOT_EQUALS." << endl;
 		return true;
 	}
+	return false;
 }
 
 bool Parser::matchT_FALSE(Token tok)
@@ -482,6 +503,7 @@ bool Parser::matchT_FALSE(Token tok)
 		if(verbose) cout << "Matched a T_FALSE." << endl;
 		return true;
 	}
+	return false;
 }
 
 bool Parser::matchT_TRUE(Token tok)
@@ -494,6 +516,7 @@ bool Parser::matchT_TRUE(Token tok)
 		if(verbose) cout << "Matched a T_TRUE." << endl;
 		return true;
 	}
+	return false;
 }
 
 bool Parser::matchT_WHILE(Token tok)
@@ -506,6 +529,7 @@ bool Parser::matchT_WHILE(Token tok)
 		if(verbose) cout << "Matched a T_WHILE." << endl;
 		return true;
 	}
+	return false;
 }
 
 bool Parser::matchT_PRINT(Token tok)
@@ -518,6 +542,7 @@ bool Parser::matchT_PRINT(Token tok)
 		if(verbose) cout << "Matched a T_PRINT." << endl;
 		return true;
 	}
+	return false;
 }
 
 bool Parser::matchT_STRING(Token tok)
@@ -530,6 +555,7 @@ bool Parser::matchT_STRING(Token tok)
 		if(verbose) cout << "Matched a T_STRING." << endl;
 		return true;
 	}
+	return false;
 }
 
 bool Parser::matchT_BOOLEAN(Token tok)
@@ -542,6 +568,7 @@ bool Parser::matchT_BOOLEAN(Token tok)
 		if(verbose) cout << "Matched a T_BOOLEAN." << endl;
 		return true;
 	}
+	return false;
 }
 
 bool Parser::matchT_INT(Token tok)
@@ -554,6 +581,7 @@ bool Parser::matchT_INT(Token tok)
 		if(verbose) cout << "Matched a T_INT." << endl;
 		return true;
 	}
+	return false;
 }
 
 bool Parser::matchT_IF(Token tok)
@@ -566,6 +594,7 @@ bool Parser::matchT_IF(Token tok)
 		if(verbose) cout << "Matched a T_IF." << endl;
 		return true;
 	}
+	return false;
 }
 
 bool Parser::matchT_SPACE(Token tok)
@@ -578,4 +607,5 @@ bool Parser::matchT_SPACE(Token tok)
 		if(verbose) cout << "Matched a T_SPACE." << endl;
 		return true;
 	}
+	return false;
 }
