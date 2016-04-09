@@ -25,7 +25,6 @@ class Parser
 		int errorLine; // line number of the error
 		int stmtErrorLine; // line number of statement error
 		bool charList; // true if we are inside a charList
-		queue<Token> tpop(queue<Token>&);
 		Token hpop(queue<Token>&);
 		Node nmake(string);
 		void printCST(Node, int);
@@ -179,8 +178,9 @@ bool Parser::parseStatementList(queue<Token>& que, queue<Node>& nodes)
 	{
 		// epsilon
 		que = savedQue;
-		Node e = nmake("[epsilon]"); 
-		//n.children.push(e);
+		Node e = nmake("[epsilon]");
+		queue<Node>& children = *n.children;
+		children.push(e);
 		nodes.push(n);
 		return true;
 	}
@@ -391,23 +391,25 @@ bool Parser::parseIntExpression(queue<Token>& que, queue<Node>& nodes)
 	// cout << "parseIntExpr" << endl;
 	Node n = nmake("<IntExpr>");
 	queue<Token> savedQue = que; // save queue for reverting since multiple paths are involved
-	if(matchT_DIGIT(hpop(que), *n.children) &&
-		matchT_PLUS(hpop(que), *n.children) &&
-		parseExpression(que, *n.children))
+	
+	if(matchT_DIGIT(hpop(que), *n.children))
 	{
-		nodes.push(n);
-		return true;
-	}
-	else
-	{
-		que = savedQue;
-		if(matchT_DIGIT(hpop(que), *n.children))
+		savedQue = que;
+		if(matchT_PLUS(hpop(que), *n.children) &&
+			parseExpression(que, *n.children))
 		{
 			nodes.push(n);
 			return true;
 		}
-		return false;
+		else
+		{
+			que = savedQue;
+			nodes.push(n);
+			return true;
+		}
 	}
+	que = savedQue;
+	return false;
 }
 
 bool Parser::parseStringExpression(queue<Token>& que, queue<Node>& nodes)
@@ -475,25 +477,43 @@ bool Parser::parseCharList(queue<Token>& que, queue<Node>& nodes)
 	Node n = nmake("<CharList>");
 	charList = true; // we are now inside a charList
 	queue<Token> savedQue = que; // save queue for reverting since epsilon is involved
-	Token tok = hpop(que); // only two paths here, each taking just the head token
-	if(matchT_SPACE(tok, *n.children) || 
-		matchT_ID(tok, *n.children) ||
-		matchT_FALSE(tok, *n.children) ||
-		matchT_TRUE(tok, *n.children) ||
-		matchT_WHILE(tok, *n.children) ||
-		matchT_PRINT(tok, *n.children) ||
-		matchT_STRING(tok, *n.children) ||
-		matchT_BOOLEAN(tok, *n.children) ||
-		matchT_INT(tok, *n.children) ||
-		matchT_IF(tok, *n.children)) // space, char, or any keyword comprised only of characters
+	Token tok = hpop(que); // get the head token
+	if(matchT_SPACE(tok, nodes) || 
+		matchT_ID(tok, nodes) ||
+		matchT_FALSE(tok, nodes) ||
+		matchT_TRUE(tok, nodes) ||
+		matchT_WHILE(tok, nodes) ||
+		matchT_PRINT(tok, nodes) ||
+		matchT_STRING(tok, nodes) ||
+		matchT_BOOLEAN(tok, nodes) ||
+		matchT_INT(tok, nodes) ||
+		matchT_IF(tok, nodes)) // space, char, or any keyword comprised only of characters
+	{
+		//nodes.push(n);
 		parseCharList(que, nodes);
+	}
 	else
 	{
-		que = savedQue;
 		//epsilon
+		que = savedQue;
+		charList = false; // exiting the charList
+		// convert characters and other valid keywords into a charList
+		queue<Node>& children = *n.children;
+		string s = "[";
+		Node saved = nodes.front(); // save ["] node
+		nodes.pop(); // get rid of ["] node
+		while(!nodes.empty())
+		{
+			Node head = nodes.front();
+			if(head.name == "[space]") s.append(" "); // convert [space] to actual space
+			else s.append(head.name.substr(1, head.name.length()-2)); // otherwise trim off [ and ]
+			nodes.pop();
+		}
+		s.append("]");
+		nodes.push(saved); // put ["] back
+		children.push(nmake(s));
+		nodes.push(n); // push converted charList 
 	}
-	charList = false; // exiting the charList
-	nodes.push(n);
 	return true;
 }
 
@@ -601,9 +621,7 @@ bool Parser::matchT_OPEN_BRACE(Token tok, queue<Node>& nodes)
 	if(tok.name == "T_OPEN_BRACE")
 	{
 		if(verbose) cout << "Matched a T_OPEN_BRACE." << endl;
-		cout << "got here" << endl;
 		nodes.push(n);
-		cout << "and here" << endl;
 		return true;
 	}
 	return false;
