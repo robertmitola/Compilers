@@ -3,12 +3,12 @@ using std::string;
 using std::queue;
 
 // the Token structure
-struct Token
+typedef struct Token
 {
 	string value;	// the value of this token
 	string name;	// the name of this token
 	int lineNum;	// the line number this token is on
-};
+} Token;
 
 // the Lexer class object definition
 class Lexer

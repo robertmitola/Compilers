@@ -2,13 +2,21 @@ using namespace std;
 using std::string;
 using std::queue;
 
+// the CST node structure
+typedef struct Node
+{
+	string name;	// the name of this node
+	queue<Node>* children; // a queue containing the child nodes
+} Node;
+
 // the Parser class object definition
 class Parser
 {
 	// public class access
 	public:
 		Parser(queue<Token>&, bool); // constructor
-		int numErrors; // // number of parser errors
+		int numErrors; // number of parser errors
+		Node CST; // the concrete syntax tree
 	// private class access
 	private:
 		string error; // the error message to return
@@ -19,55 +27,58 @@ class Parser
 		bool charList; // true if we are inside a charList
 		queue<Token> tpop(queue<Token>&);
 		Token hpop(queue<Token>&);
+		Node nmake(string);
+		void printCST(Node, int);
 		bool parseProgram(queue<Token>&);
-		bool parseBlock(queue<Token> &);
-		bool parseStatementList(queue<Token>&);
-		bool parseStatement(queue<Token>&);
-		bool parsePrintStatement(queue<Token>&);
-		bool parseAssignmentStatement(queue<Token>&);
-		bool parseVarDecl(queue<Token>&);
-		bool parseWhileStatement(queue<Token>&);
-		bool parseIfStatement(queue<Token>&);
-		bool parseType(queue<Token>&);
-		bool parseExpression(queue<Token>&);
-		bool parseIntExpression(queue<Token>&);
-		bool parseStringExpression(queue<Token>&);
-		bool parseBooleanExpression(queue<Token>&);
-		bool parseBoolOp(queue<Token>&);
-		bool parseCharList(queue<Token>&);
-		bool parseBoolval(queue<Token>&);
-		bool matchT_EOF(Token);
-		bool matchT_PLUS(Token);
-		bool matchT_OPEN_BRACE(Token);
-		bool matchT_CLOSE_BRACE(Token);
-		bool matchT_OPEN_PAREN(Token);
-		bool matchT_CLOSE_PAREN(Token);
-		bool matchT_QUOTE(Token);
-		bool matchT_EQUALS(Token);
-		bool matchT_NOT_EQUALS(Token);
-		bool matchT_FALSE(Token);
-		bool matchT_TRUE(Token);
-		bool matchT_WHILE(Token);
-		bool matchT_PRINT(Token);
-		bool matchT_ID(Token);
-		bool matchT_STRING(Token);
-		bool matchT_BOOLEAN(Token);
-		bool matchT_IF(Token);
-		bool matchT_SPACE(Token);
-		bool matchT_ASSIGN(Token);
-		bool matchT_DIGIT(Token);
-		bool matchT_INT(Token);
+		bool parseBlock(queue<Token> &, queue<Node>&);
+		bool parseStatementList(queue<Token>&, queue<Node>&);
+		bool parseStatement(queue<Token>&, queue<Node>&);
+		bool parsePrintStatement(queue<Token>&, queue<Node>&);
+		bool parseAssignmentStatement(queue<Token>&, queue<Node>&);
+		bool parseVarDecl(queue<Token>&, queue<Node>&);
+		bool parseWhileStatement(queue<Token>&, queue<Node>&);
+		bool parseIfStatement(queue<Token>&, queue<Node>&);
+		bool parseType(queue<Token>&, queue<Node>&);
+		bool parseExpression(queue<Token>&, queue<Node>&);
+		bool parseIntExpression(queue<Token>&, queue<Node>&);
+		bool parseStringExpression(queue<Token>&, queue<Node>&);
+		bool parseBooleanExpression(queue<Token>&, queue<Node>&);
+		bool parseBoolOp(queue<Token>&, queue<Node>&);
+		bool parseCharList(queue<Token>&, queue<Node>&);
+		bool parseBoolval(queue<Token>&, queue<Node>&);
+		bool matchT_EOF(Token, queue<Node>&);
+		bool matchT_PLUS(Token, queue<Node>&);
+		bool matchT_OPEN_BRACE(Token, queue<Node>&);
+		bool matchT_CLOSE_BRACE(Token, queue<Node>&);
+		bool matchT_OPEN_PAREN(Token, queue<Node>&);
+		bool matchT_CLOSE_PAREN(Token, queue<Node>&);
+		bool matchT_QUOTE(Token, queue<Node>&);
+		bool matchT_EQUALS(Token, queue<Node>&);
+		bool matchT_NOT_EQUALS(Token, queue<Node>&);
+		bool matchT_FALSE(Token, queue<Node>&);
+		bool matchT_TRUE(Token, queue<Node>&);
+		bool matchT_WHILE(Token, queue<Node>&);
+		bool matchT_PRINT(Token, queue<Node>&);
+		bool matchT_ID(Token, queue<Node>&);
+		bool matchT_STRING(Token, queue<Node>&);
+		bool matchT_BOOLEAN(Token, queue<Node>&);
+		bool matchT_IF(Token, queue<Node>&);
+		bool matchT_SPACE(Token, queue<Node>&);
+		bool matchT_ASSIGN(Token, queue<Node>&);
+		bool matchT_DIGIT(Token, queue<Node>&);
+		bool matchT_INT(Token, queue<Node>&);
 };
 
 // the Parser constructor
 // que		: reference to the token queue the Parser should use
-// v	: true if verbose output should happen
+// v		: true if verbose output should happen
 Parser::Parser(queue<Token>& que, bool v)
 {
 	numErrors = 0; // no errors at the start
 	error = ""; // set error to nothing
 	stmtError= ""; // set statement error to nothing
 	verbose = v; // should verbose output happen?
+	CST = nmake("<Program>"); // make root node of the CST
 	if (!parseProgram(que))
 	{
 		if(stmtError != "") // if there was a semi-successful statement
@@ -77,6 +88,11 @@ Parser::Parser(queue<Token>& que, bool v)
 		}
 		cout << "[ERROR]Line " << errorLine << ": " << error << endl; // report the error
 		++numErrors; // increment the number of parser errors
+	}
+	if(verbose) // if verbose mode is on
+	{
+		cout << endl << "The Concrete Syntax Tree:" << endl;
+		printCST(CST, 0); // output the CST
 	}
 }
 
@@ -92,74 +108,168 @@ Token Parser::hpop(queue<Token>& que)
 	return tok; // return the saved head
 }
 
+// function to make a node
+// name		: name of this node
+// returns	: a node
+Node Parser::nmake(string name)
+{
+	queue<Node>* children = new queue<Node>;
+	Node n = {name, children};
+	return n;
+}
+
+// prints out the concrete syntax tree
+// n		: the current node
+// level	: the depth of this node
+void Parser::printCST(Node n, int level)
+{
+	for(int i=0; i < level; ++i) // for the node's depth
+		cout << "-"; // print out a corresponding number of dashes
+	cout << n.name << endl; // print node's name
+	queue<Node> children = *n.children; // get the node's children
+	while(!children.empty()) // for each child node
+	{
+		printCST(children.front(), level+1); // recurse
+		children.pop();
+	}
+}
+
+
 // PARSE FUNCTIONS
 
 bool Parser::parseProgram(queue<Token>& que)
 {
 	// cout << "parseProgram" << endl;
 	return 
-		parseBlock(que) && 
-		matchT_EOF(hpop(que));
+		parseBlock(que, *CST.children) && 
+		matchT_EOF(hpop(que), *CST.children);
 }
 
-bool Parser::parseBlock(queue<Token>& que)
+bool Parser::parseBlock(queue<Token>& que, queue<Node>& nodes)
 {
 	// cout << "parseBlock" << endl;
-	return 
-		matchT_OPEN_BRACE(hpop(que)) && 
-		parseStatementList(que) && 
-		matchT_CLOSE_BRACE(hpop(que));
+	Node n = nmake("<Block>");
+	queue<Token> savedQue = que; // save queue for reverting since epsilon is involved
+	if(matchT_OPEN_BRACE(hpop(que), *n.children) && 
+		parseStatementList(que, *n.children) && 
+		matchT_CLOSE_BRACE(hpop(que), *n.children)
+		)
+	{
+		nodes.push(n);
+		return true;
+	}
+	que = savedQue;
+	return false;	
 }
 
-bool Parser::parseStatementList(queue<Token>& que)
+bool Parser::parseStatementList(queue<Token>& que, queue<Node>& nodes)
 {
 	// cout << "parsStmtLst" << endl;
+	Node n = nmake("<StatementList>");
 	queue<Token> savedQue = que; // save queue for reverting since epsilon is involved
-	if(parseStatement(que))
-		return parseStatementList(que);
+	if(parseStatement(que, *n.children))
+	{
+		if(parseStatementList(que, *n.children))
+		{
+			nodes.push(n);
+			return true;
+		}
+	}
 	else
 	{
+		// epsilon
 		que = savedQue;
-		return true; // epsilon
+		Node e = nmake("[epsilon]"); 
+		//n.children.push(e);
+		nodes.push(n);
+		return true;
 	}
+	return false; // never reached, but makes my C++ compiler happy
 }
 
-bool Parser::parseStatement(queue<Token>& que)
+bool Parser::parseStatement(queue<Token>& que, queue<Node>& nodes)
 {
 	// cout << "parseStmt" << endl;
+	Node n = nmake("<Statement>");
 	queue<Token> savedQue = que; // save queue for reverting since multiple paths are involved
-	if (parsePrintStatement(que)) return true; else que = savedQue;
-	if (parseAssignmentStatement(que)) return true; else que = savedQue;
-	if (parseIfStatement(que)) return true; else que = savedQue;
-	if (parseWhileStatement(que)) return true; else que = savedQue;
-	if (parseVarDecl(que)) return true; else que = savedQue;
-	if (parseBlock(que)) return true; else que = savedQue;
+	if (parsePrintStatement(que, *n.children))
+	{		
+		nodes.push(n);
+		return true; 
+	}
+	else 
+		que = savedQue;
+	if (parseAssignmentStatement(que, *n.children)) 
+	{		
+		nodes.push(n);
+		return true; 
+	} 
+	else 
+		que = savedQue;
+	if (parseIfStatement(que, *n.children)) 
+	{		
+		nodes.push(n);
+		return true; 
+	}
+	else 
+		que = savedQue;
+	if (parseWhileStatement(que, *n.children)) 
+	{		
+		nodes.push(n);
+		return true; 
+	} 
+	else 
+		que = savedQue;
+	if (parseVarDecl(que, *n.children)) 
+	{		
+		nodes.push(n);
+		return true; 
+	} 
+	else 
+		que = savedQue;
+	if (parseBlock(que, *n.children)) 
+	{		
+		nodes.push(n);
+		return true; 
+	} 
+	else 
+		que = savedQue;
 	return false;
 }
 
-bool Parser::parsePrintStatement(queue<Token>& que)
+bool Parser::parsePrintStatement(queue<Token>& que, queue<Node>& nodes)
 {
 	// cout << "parsePrintStmt" << que.front().name << endl;
+	Node n = nmake("<PrintStatement>");
 	queue<Token> savedQue = que; // save queue for reverting
-	if (matchT_PRINT(hpop(que)))
-		if(matchT_OPEN_PAREN(hpop(que)) && parseExpression(que) && matchT_CLOSE_PAREN(hpop(que)))
+	if (matchT_PRINT(hpop(que), *n.children))
+	{
+		if(matchT_OPEN_PAREN(hpop(que), *n.children) && parseExpression(que, *n.children) && matchT_CLOSE_PAREN(hpop(que), *n.children))
+		{		
+			nodes.push(n);
 			return true;
+		}
 		else
 		{
 			stmtError = error; // save whatever error one of the three conditionals returned
 			stmtErrorLine = errorLine; // save the line number of the error
 		}
+	}
 	que = savedQue;
 	return false;
 }
 
-bool Parser::parseAssignmentStatement(queue<Token>& que)
+bool Parser::parseAssignmentStatement(queue<Token>& que, queue<Node>& nodes)
 { 
 	// cout << "parseAssignStmt" << endl;
+	Node n = nmake("<AssignmentStatement>");
 	queue<Token> savedQue = que; // save queue for reverting
-	if(matchT_ID(hpop(que)))
-		if(matchT_ASSIGN(hpop(que)) && parseExpression(que))
+	if(matchT_ID(hpop(que), *n.children))
+		if(matchT_ASSIGN(hpop(que), *n.children) && parseExpression(que, *n.children))
+		{	
+			nodes.push(n);
 			return true;
+		}
 		else
 		{
 			stmtError = error; // save whatever error one of the two conditionals returned
@@ -169,13 +279,17 @@ bool Parser::parseAssignmentStatement(queue<Token>& que)
 	return false;
 }
 
-bool Parser::parseVarDecl(queue<Token>& que)
+bool Parser::parseVarDecl(queue<Token>& que, queue<Node>& nodes)
 {
 	// cout << "parseVarDecl" << endl;
+	Node n = nmake("<VarDecl>");
 	queue<Token> savedQue = que; // save queue for reverting
-	if(parseType(que))
-		if(matchT_ID(hpop(que)))
+	if(parseType(que, *n.children))
+		if(matchT_ID(hpop(que), *n.children))
+		{
+			nodes.push(n);
 			return true;
+		}
 		else
 		{
 			stmtError = error; // save the error the conditional returned
@@ -185,13 +299,17 @@ bool Parser::parseVarDecl(queue<Token>& que)
 	return false;
 }
 
-bool Parser::parseWhileStatement(queue<Token>& que)
+bool Parser::parseWhileStatement(queue<Token>& que, queue<Node>& nodes)
 {
 	// cout << "parseWhileStmt" << endl;
+	Node n = nmake("<WhileStatement>");
 	queue<Token> savedQue = que; // save queue for reverting
-	if(matchT_WHILE(hpop(que)))
-		if(parseBooleanExpression(que) && parseBlock(que))
+	if(matchT_WHILE(hpop(que), *n.children))
+		if(parseBooleanExpression(que, *n.children) && parseBlock(que, *n.children))
+		{
+			nodes.push(n);
 			return true;
+		}
 		else
 		{
 			stmtError = error; // save whatever error one of the two conditionals returned
@@ -201,13 +319,17 @@ bool Parser::parseWhileStatement(queue<Token>& que)
 	return false;
 }
 
-bool Parser::parseIfStatement(queue<Token>& que)
+bool Parser::parseIfStatement(queue<Token>& que, queue<Node>& nodes)
 {
 	// cout << "parseIfStmt" << endl;
+	Node n = nmake("<IfStatement>");
 	queue<Token> savedQue = que; // save queue for reverting
-	if(matchT_IF(hpop(que)))
-		if(parseBooleanExpression(que) && parseBlock(que))
+	if(matchT_IF(hpop(que), *n.children))
+		if(parseBooleanExpression(que, *n.children) && parseBlock(que, *n.children))
+		{
+			nodes.push(n);
 			return true;
+		}
 		else
 		{
 			stmtError = error; // save whatever error one the two conditionals returned
@@ -217,140 +339,201 @@ bool Parser::parseIfStatement(queue<Token>& que)
 	return false;
 }
 
-bool Parser::parseType(queue<Token>& que)
+bool Parser::parseType(queue<Token>& que, queue<Node>& nodes)
 {
 	// cout << "parseType" << endl;
+	Node n = nmake("<type>");
 	queue<Token> savedQue = que; // save queue for reverting since multiple paths are involved
-	if (matchT_INT(hpop(que))) return true; else que = savedQue;
-	if (matchT_STRING(hpop(que))) return true; else que = savedQue;
-	if (matchT_BOOLEAN(hpop(que))) return true; else que = savedQue;
+	if (matchT_INT(hpop(que), *n.children))
+	{ 
+		nodes.push(n);
+		return true;
+	} 
+	else que = savedQue;
+	if (matchT_STRING(hpop(que), *n.children))
+	{ 
+		nodes.push(n);
+		return true;
+	} 
+	else que = savedQue;
+	if (matchT_BOOLEAN(hpop(que), *n.children))
+	{ 
+		nodes.push(n);
+		return true;
+	} 
+	else que = savedQue;
 	return false;
 }
 
-bool Parser::parseExpression(queue<Token>& que)
+bool Parser::parseExpression(queue<Token>& que, queue<Node>& nodes)
 {
 	// cout << "parseExpr" << endl;
+	Node n = nmake("<Expr>");
 	queue<Token> savedQue = que; // save queue for reverting since multiple paths are involved
-	if (matchT_ID(hpop(que))) return true; else que = savedQue;
-	return
-		parseStringExpression(que) ||
-		parseBooleanExpression(que) ||
-		parseIntExpression(que);
+	if (matchT_ID(hpop(que), *n.children))
+	{	
+		nodes.push(n);
+		return true; 
+	}
+	else que = savedQue;
+	if(parseStringExpression(que, *n.children) ||
+		parseBooleanExpression(que, *n.children) ||
+		parseIntExpression(que, *n.children))
+	{
+		nodes.push(n);
+		return true;
+	}
+	return false;
 }
 
-bool Parser::parseIntExpression(queue<Token>& que)
+bool Parser::parseIntExpression(queue<Token>& que, queue<Node>& nodes)
 {
 	// cout << "parseIntExpr" << endl;
+	Node n = nmake("<IntExpr>");
 	queue<Token> savedQue = que; // save queue for reverting since multiple paths are involved
-	if(matchT_DIGIT(hpop(que)) &&
-		matchT_PLUS(hpop(que)) &&
-		parseExpression(que))
+	if(matchT_DIGIT(hpop(que), *n.children) &&
+		matchT_PLUS(hpop(que), *n.children) &&
+		parseExpression(que, *n.children))
+	{
+		nodes.push(n);
 		return true;
+	}
 	else
 	{
 		que = savedQue;
-		return matchT_DIGIT(hpop(que));
+		if(matchT_DIGIT(hpop(que), *n.children))
+		{
+			nodes.push(n);
+			return true;
+		}
+		return false;
 	}
 }
 
-bool Parser::parseStringExpression(queue<Token>& que)
+bool Parser::parseStringExpression(queue<Token>& que, queue<Node>& nodes)
 {
 	// cout << "parseStringExpr" << endl;
+	Node n = nmake("<StringExpr>");
 	queue<Token> savedQue = que; // save queue for reverting
-	if( matchT_QUOTE(hpop(que)) &&
-		parseCharList(que) &&
-		matchT_QUOTE(hpop(que))
+	if( matchT_QUOTE(hpop(que), *n.children) &&
+		parseCharList(que, *n.children) &&
+		matchT_QUOTE(hpop(que), *n.children)
 	  )
+	{
+		nodes.push(n);
 		return true;
+	}
 	que = savedQue;
 	return false;
 }
 
-bool Parser::parseBooleanExpression(queue<Token>& que)
+bool Parser::parseBooleanExpression(queue<Token>& que, queue<Node>& nodes)
 {
 	// cout << "parseBoolExpr" << endl;
+	Node n = nmake("<BooleanExpr>");
 	queue<Token> savedQue = que; // save queue for reverting since multiple paths are involved
-	if(matchT_OPEN_PAREN(hpop(que)) &&
-		parseExpression(que) &&
-		parseBoolOp(que) &&
-		parseExpression(que) &&
-		matchT_CLOSE_PAREN(hpop(que))) 
+	if(matchT_OPEN_PAREN(hpop(que), *n.children) &&
+		parseExpression(que, *n.children) &&
+		parseBoolOp(que, *n.children) &&
+		parseExpression(que, *n.children) &&
+		matchT_CLOSE_PAREN(hpop(que), *n.children))
+	{		
+		nodes.push(n);
 		return true;
+	}
 	else
 	{
 		que = savedQue;
-		return parseBoolval(que);
+		if(parseBoolval(que, *n.children))
+		{
+			nodes.push(n);
+			return true;
+		}
+		return false;
 	}
 }
 
-bool Parser::parseBoolOp(queue<Token>& que)
+bool Parser::parseBoolOp(queue<Token>& que, queue<Node>& nodes)
 {
 	// cout << "parseBoolOp" << endl;
+	Node n = nmake("<boolop>");
 	queue<Token> savedQue = que; // save queue for reverting
 	Token tok = hpop(que); // only two paths here, each taking just the head token
-	if(matchT_EQUALS(tok) ||
-		matchT_NOT_EQUALS(tok))
+	if(matchT_EQUALS(tok, *n.children) ||
+		matchT_NOT_EQUALS(tok, *n.children))
+	{
+		nodes.push(n);
 		return true;
+	}
 	que = savedQue;
 	return false;
 }
 
-bool Parser::parseCharList(queue<Token>& que)
+bool Parser::parseCharList(queue<Token>& que, queue<Node>& nodes)
 {
 	// cout << "parseCharList" << endl;
+	Node n = nmake("<CharList>");
 	charList = true; // we are now inside a charList
 	queue<Token> savedQue = que; // save queue for reverting since epsilon is involved
 	Token tok = hpop(que); // only two paths here, each taking just the head token
-	if(matchT_SPACE(tok) || 
-		matchT_ID(tok) ||
-		matchT_FALSE(tok) ||
-		matchT_TRUE(tok) ||
-		matchT_WHILE(tok) ||
-		matchT_PRINT(tok) ||
-		matchT_STRING(tok) ||
-		matchT_BOOLEAN(tok) ||
-		matchT_INT(tok) ||
-		matchT_IF(tok)) // space, char, or any keyword comprised only of characters
-		parseCharList(que);
+	if(matchT_SPACE(tok, *n.children) || 
+		matchT_ID(tok, *n.children) ||
+		matchT_FALSE(tok, *n.children) ||
+		matchT_TRUE(tok, *n.children) ||
+		matchT_WHILE(tok, *n.children) ||
+		matchT_PRINT(tok, *n.children) ||
+		matchT_STRING(tok, *n.children) ||
+		matchT_BOOLEAN(tok, *n.children) ||
+		matchT_INT(tok, *n.children) ||
+		matchT_IF(tok, *n.children)) // space, char, or any keyword comprised only of characters
+		parseCharList(que, nodes);
 	else
 	{
 		que = savedQue;
 		//epsilon
 	}
 	charList = false; // exiting the charList
+	nodes.push(n);
 	return true;
 }
 
-bool Parser::parseBoolval(queue<Token>& que)
+bool Parser::parseBoolval(queue<Token>& que, queue<Node>& nodes)
 {
 	// cout << "parseBoolVal" << endl;
+	Node n = nmake("<boolval>");
 	queue<Token> savedQue = que; // save queue for reverting
 	Token tok = hpop(que); // only two paths here, each taking just the head token
-	if(matchT_TRUE(tok) ||
-		matchT_FALSE(tok))
+	if(matchT_TRUE(tok, *n.children) ||
+		matchT_FALSE(tok, *n.children))
+	{
+		nodes.push(n);
 		return true;
+	}
 	que = savedQue;
 	return false;
 }
 
 // MATCH FUNCTIONS
 
-bool Parser::matchT_DIGIT(Token tok)
+bool Parser::matchT_DIGIT(Token tok, queue<Node>& nodes)
 {
 	// cout << "	match digit " << tok.value << endl;
+	Node n = nmake("["+tok.value+"]");
 	error = "[" + tok.value + "] is not a valid digit. Valid digits include natural numbers [0-9].";
 	errorLine = tok.lineNum;
 	if(tok.name == "T_DIGIT")
 	{
 		if(verbose) cout << "Matched a T_DIGIT." << endl;
+		nodes.push(n);
 		return true;
 	}
 	return false;
 }
 
-bool Parser::matchT_ID(Token tok)
+bool Parser::matchT_ID(Token tok, queue<Node>& nodes)
 {
 	// cout << "	match id " << tok.value << endl;
+	Node n = nmake("["+tok.value+"]");
 	if(!charList ) 
 		error = "[" + tok.value + "] is not a valid identifier. Valid identifiers include lowercase letters [a-z].";
 	else 
@@ -359,252 +542,293 @@ bool Parser::matchT_ID(Token tok)
 	if(tok.name == "T_ID")
 	{
 		if(verbose) cout << "Matched a T_ID." << endl;
+		nodes.push(n);
 		return true;
 	}
 	return false;
 }
 
-bool Parser::matchT_EOF(Token tok)
+bool Parser::matchT_EOF(Token tok, queue<Node>& nodes)
 {
 	// cout << "	match eof " << tok.value << endl;
+	Node n = nmake("[$]");
 	error = "Program cannot end with [" + tok.value + "]. Programs may only end with [$].";
 	errorLine = tok.lineNum;
 	if(tok.name == "T_EOF")
 	{
 		if(verbose) cout << "Matched a T_EOF." << endl;
+		nodes.push(n);
 		return true;
 	}
 	return false;
 }
 
-bool Parser::matchT_PLUS(Token tok)
+bool Parser::matchT_PLUS(Token tok, queue<Node>& nodes)
 {
 	// cout << "	match plus " << tok.value << endl;
 	// no error message here isnce an integer expression can also be just a digit, which is checked second
+	Node n = nmake("[+]");
 	if(tok.name == "T_PLUS")
 	{
 		if(verbose) cout << "Matched a T_PLUS." << endl;
+		nodes.push(n);
 		return true;
 	}
 	return false;
 }
 
-bool Parser::matchT_ASSIGN(Token tok)
+bool Parser::matchT_ASSIGN(Token tok, queue<Node>& nodes)
 {
 	// cout << "	match assign " << tok.value << endl;
+	Node n = nmake("[=]");
 	error = "Expecting the assignment operator [=]. Instead found the token [" + tok.value + "].";
 	errorLine = tok.lineNum;
 	if(tok.name == "T_ASSIGN")
 	{
 		if(verbose) cout << "Matched a T_ASSIGN." << endl;
+		nodes.push(n);
 		return true;
 	}
 	return false;
 }
 
-bool Parser::matchT_OPEN_BRACE(Token tok)
+bool Parser::matchT_OPEN_BRACE(Token tok, queue<Node>& nodes)
 {
 	// cout << "	match open brace " << tok.value << endl;
+	Node n = nmake("[{]");
 	error = "Expecting an open brace [{] before the [" + tok.value + "].";
 	errorLine = tok.lineNum;
 	if(tok.name == "T_OPEN_BRACE")
 	{
 		if(verbose) cout << "Matched a T_OPEN_BRACE." << endl;
+		cout << "got here" << endl;
+		nodes.push(n);
+		cout << "and here" << endl;
 		return true;
 	}
 	return false;
 }
 
-bool Parser::matchT_CLOSE_BRACE(Token tok)
+bool Parser::matchT_CLOSE_BRACE(Token tok, queue<Node>& nodes)
 {
 	// cout << "	match close brace " << tok.value << endl;
+	Node n = nmake("[}]");
 	error = "Expecting a closing brace [}] before the [" + tok.value + "].";
 	errorLine = tok.lineNum;
 	if(tok.name == "T_CLOSE_BRACE")
 	{
 		if(verbose) cout << "Matched a T_CLOSE_BRACE." << endl;
+		nodes.push(n);
 		return true;
 	}
 	return false;
 }
 
-bool Parser::matchT_OPEN_PAREN(Token tok)
+bool Parser::matchT_OPEN_PAREN(Token tok, queue<Node>& nodes)
 {
 	// cout << "	match open paren " << tok.value << endl;
+	Node n = nmake("[(]");
 	error = "Expecting an open parenthesis [(] before the [" + tok.value + "].";
 	errorLine = tok.lineNum;
 	if(tok.name == "T_OPEN_PAREN")
 	{
 		if(verbose) cout << "Matched a T_OPEN_PAREN." << endl;
+		nodes.push(n);
 		return true;
 	}
 	return false;
 }
 
-bool Parser::matchT_CLOSE_PAREN(Token tok)
+bool Parser::matchT_CLOSE_PAREN(Token tok, queue<Node>& nodes)
 {
 	// cout << "	match close paren " << tok.value << endl;
+	Node n = nmake("[)]");
 	error = "Expecting a closing parenthesis [)] before the [" + tok.value + "].";
 	errorLine = tok.lineNum;
 	if(tok.name == "T_CLOSE_PAREN")
 	{
 		if(verbose) cout << "Matched a T_CLOSE_PAREN." << endl;
+		nodes.push(n);
 		return true;
 	}
 	return false;
 }
 
-bool Parser::matchT_QUOTE(Token tok)
+bool Parser::matchT_QUOTE(Token tok, queue<Node>& nodes)
 {
 	// cout << "	match quote " << tok.value << endl;
+	Node n = nmake("[\"]");
 	error = "Strings must be wrapped in quotation marks. Expecting a quote [\"] before the [" + tok.value + "].";
 	errorLine = tok.lineNum;
 	if(tok.name == "T_QUOTE")
 	{
 		if(verbose) cout << "Matched a T_QUOTE." << endl;
+		nodes.push(n);
 		return true;
 	}
 	return false;
 }
 
-bool Parser::matchT_EQUALS(Token tok)
+bool Parser::matchT_EQUALS(Token tok, queue<Node>& nodes)
 {
 	// cout << "	match equals " << tok.value << endl;
+	Node n = nmake("[==]");
 	error = "[" + tok.value + "] is not a valid boolean operator. Valid boolean operators include [==] and [!=].";
 	errorLine = tok.lineNum;
 	if(tok.name == "T_EQUALS")
 	{
 		if(verbose) cout << "Matched a T_EQUALS." << endl;
+		nodes.push(n);
 		return true;
 	}
 	return false;
 }
 
-bool Parser::matchT_NOT_EQUALS(Token tok)
+bool Parser::matchT_NOT_EQUALS(Token tok, queue<Node>& nodes)
 {
 	// cout << "	match not equals " << tok.value << endl;
+	Node n = nmake("[!=]");
 	error = "[" + tok.value + "] is not a valid boolean operator. Valid boolean operators include [==] and [!=].";
 	errorLine = tok.lineNum;
 	if(tok.name == "T_NOT_EQUALS")
 	{
 		if(verbose) cout << "Matched a T_NOT_EQUALS." << endl;
+		nodes.push(n);
 		return true;
 	}
 	return false;
 }
 
-bool Parser::matchT_FALSE(Token tok)
+bool Parser::matchT_FALSE(Token tok, queue<Node>& nodes)
 {
 	// cout << "	match false " << tok.value << endl;
+	Node n = nmake("[false]");
 	error = "[" + tok.value + "] is not a valid boolean value. Valid boolean values include [true] and [false].";
 	errorLine = tok.lineNum;
 	if(tok.name == "T_FALSE")
 	{
 		if(verbose) cout << "Matched a T_FALSE." << endl;
+		nodes.push(n);
 		return true;
 	}
 	return false;
 }
 
-bool Parser::matchT_TRUE(Token tok)
+bool Parser::matchT_TRUE(Token tok, queue<Node>& nodes)
 {
 	// cout << "	match true " << tok.value << endl;
+	Node n = nmake("[true]");
 	error = "[" + tok.value + "] is not a valid boolean value. Valid boolean values include [true] and [false].";
 	errorLine = tok.lineNum;
 	if(tok.name == "T_TRUE")
 	{
 		if(verbose) cout << "Matched a T_TRUE." << endl;
+		nodes.push(n);
 		return true;
 	}
 	return false;
 }
 
-bool Parser::matchT_WHILE(Token tok)
+bool Parser::matchT_WHILE(Token tok, queue<Node>& nodes)
 {
 	// cout << "	match while " << tok.value << endl;
+	Node n = nmake("[while]");
 	error = "Expecting the [while] keyword before the [" + tok.value + "].";
 	errorLine = tok.lineNum;
 	if(tok.name == "T_WHILE")
 	{
 		if(verbose) cout << "Matched a T_WHILE." << endl;
+		nodes.push(n);
 		return true;
 	}
 	return false;
 }
 
-bool Parser::matchT_PRINT(Token tok)
+bool Parser::matchT_PRINT(Token tok, queue<Node>& nodes)
 {
 	// cout << "	match print " << tok.value << endl;
+	Node n = nmake("[print]");
 	error = "Expecting the [print] keyword before the [" + tok.value + "].";
 	errorLine = tok.lineNum;
 	if(tok.name == "T_PRINT")
 	{
 		if(verbose) cout << "Matched a T_PRINT." << endl;
+		nodes.push(n);
 		return true;
 	}
 	return false;
 }
 
-bool Parser::matchT_STRING(Token tok)
+bool Parser::matchT_STRING(Token tok, queue<Node>& nodes)
 {
 	// cout << "	match string " << tok.value << endl;
+	Node n = nmake("[string]");
 	error = "Expecting the [string] keyword before the [" + tok.value + "].";
 	errorLine = tok.lineNum;
 	if(tok.name == "T_STRING")
 	{
 		if(verbose) cout << "Matched a T_STRING." << endl;
+		nodes.push(n);
 		return true;
 	}
 	return false;
 }
 
-bool Parser::matchT_BOOLEAN(Token tok)
+bool Parser::matchT_BOOLEAN(Token tok, queue<Node>& nodes)
 {
 	// cout << "	match bool " << tok.value << endl;
+	Node n = nmake("[boolean]");
 	error = "Expecting the [boolean] keyword before the [" + tok.value + "].";
 	errorLine = tok.lineNum;
 	if(tok.name == "T_BOOLEAN")
 	{
 		if(verbose) cout << "Matched a T_BOOLEAN." << endl;
+		nodes.push(n);
 		return true;
 	}
 	return false;
 }
 
-bool Parser::matchT_INT(Token tok)
+bool Parser::matchT_INT(Token tok, queue<Node>& nodes)
 {
 	// cout << "	match int " << tok.value << endl;
+	Node n = nmake("[int]");
 	error = "Expecting the [int] keyword before the [" + tok.value + "].";
 	errorLine = tok.lineNum;
 	if(tok.name == "T_INT")
 	{
 		if(verbose) cout << "Matched a T_INT." << endl;
+		nodes.push(n);
 		return true;
 	}
 	return false;
 }
 
-bool Parser::matchT_IF(Token tok)
+bool Parser::matchT_IF(Token tok, queue<Node>& nodes)
 {
 	// cout << "	match if " << tok.value << endl;
+	Node n = nmake("[if]");
 	error = "Expecting keyword [if] before the [" + tok.value + "].";
 	errorLine = tok.lineNum;
 	if(tok.name == "T_IF")
 	{
 		if(verbose) cout << "Matched a T_IF." << endl;
+		nodes.push(n);
 		return true;
 	}
 	return false;
 }
 
-bool Parser::matchT_SPACE(Token tok)
+bool Parser::matchT_SPACE(Token tok, queue<Node>& nodes)
 {
 	// cout << "	match space " << tok.value << endl;
+	Node n = nmake("[space]");
 	error = "[" + tok.value + "] is not a valid character. Characters can only be lowercase letters [a-z] or the space character [ ].";
 	errorLine = tok.lineNum;
 	if(tok.name == "T_SPACE")
 	{
 		if(verbose) cout << "Matched a T_SPACE." << endl;
+		nodes.push(n);
 		return true;
 	}
 	return false;

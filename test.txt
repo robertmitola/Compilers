@@ -18,3 +18,9 @@
 
 }
 $
+
+{
+	int a
+	string b
+	print("bye")
+}

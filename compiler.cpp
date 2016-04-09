@@ -22,20 +22,7 @@ using std::string;
 using std::queue;
 using std::setw;
 using std::cout;
-/*
-// C++ implementation of PHP's explode
-// for splitting the source file at every $ so one can compile multiple programs
-// source	: the source string 
-// returns	: a queue of separate programs (strings) to compile
-queue<string> explode(string const & source)
-{
-	queue<string> programs;
-	istringstream iss(source);
-	for(string prog; getline(iss, prog, '$'))
-		programs.push(move(prog));
-	return programs;
-}
-*/
+
 int main(int argc, char *argv[])
 {
 	////////// SETUP ////////////////////////////////////////////////
@@ -96,6 +83,12 @@ int main(int argc, char *argv[])
 	int progNum = 1; // program number for keeping track of which is being compiled
 	while(!programs.empty())
 	{
+		if(progNum > 1) // if not compiling first program
+		{
+			cout << endl << "PRESS ENTER TO COMPILE NEXT PROGRAM..." << endl << endl;
+			cin.ignore(); // cin to pause program compilation
+		}
+		
 		cout << " ____________________________" << endl << 
 		"| COMPILING PROGRAM No. " << setw(5) << progNum << "|" << endl <<
 		"+_____________________________________________________________________"<< endl;
