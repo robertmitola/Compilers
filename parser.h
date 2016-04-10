@@ -5,7 +5,9 @@ using std::queue;
 // the CST node structure
 typedef struct Node
 {
-	string name;	// the name of this node
+	string name; // the name of this node
+	string type; // the type associated with this node	
+	int scope; // the scope associated with this node
 	queue<Node>* children; // a queue containing the child nodes
 } Node;
 
@@ -113,7 +115,7 @@ Token Parser::hpop(queue<Token>& que)
 Node Parser::nmake(string name)
 {
 	queue<Node>* children = new queue<Node>;
-	Node n = {name, children};
+	Node n = {name,"void", 0, children}; // initialize with type void and scope 0 to be changed during AST creation
 	return n;
 }
 
@@ -539,6 +541,7 @@ bool Parser::matchT_DIGIT(Token tok, queue<Node>& nodes)
 {
 	// cout << "	match digit " << tok.value << endl;
 	Node n = nmake("["+tok.value+"]");
+	n.type = "digit";
 	error = "[" + tok.value + "] is not a valid digit. Valid digits include natural numbers [0-9].";
 	errorLine = tok.lineNum;
 	if(tok.name == "T_DIGIT")
@@ -554,6 +557,7 @@ bool Parser::matchT_ID(Token tok, queue<Node>& nodes)
 {
 	// cout << "	match id " << tok.value << endl;
 	Node n = nmake("["+tok.value+"]");
+	n.type = "id";
 	if(!charList ) 
 		error = "[" + tok.value + "] is not a valid identifier. Valid identifiers include lowercase letters [a-z].";
 	else 

@@ -16,6 +16,7 @@ CMPT 432 - DESIGN OF COMPILERS
 
 #include "lexer.h" 	// The Lexer
 #include "parser.h"	// The Parser
+#include "semantic_analyzer.h" // The Semantic Analyzer
 
 using namespace std;
 using std::string;
@@ -148,7 +149,14 @@ int main(int argc, char *argv[])
 	
 		// indicate completion of parsing
 		cout << endl << "Parsing complete!" << endl;
-	
+		
+		////////// SEMANTIC ANALYSIS ///////////////////////////////////
+		cout << endl << "Performing Semantic Analysis..." << endl << endl;
+		Semantic_Analyzer semantics(parse.CST, verbose);
+		
+		// indicate completion of semantic analysis
+		cout << endl << "Semantic Analysis complete!" << endl;
+		
 		programs.pop(); // on to the next program
 		++progNum; // so increment the program number
 	}
