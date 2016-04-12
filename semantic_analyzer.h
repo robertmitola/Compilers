@@ -6,6 +6,7 @@ using std::unordered_map;
 // the Symbol structure (for the symbol table)
 typedef struct Symbol
 {
+	string name; // name of the symbol
 	string type; // the type of this symbol
 	int lineNum; // the line number this symbol is found on
 	int intVal; // integer value (set only if type=="int")
@@ -13,13 +14,14 @@ typedef struct Symbol
 	string stringVal; // string value (set only if type=="string")
 	bool initialized; // default false; becomes true if symbol is initialized after declaration
 	bool used; // default false; becomes true if symbol is used after initialization
+	int scope; // scope of the symbol
 } Symbol;
 
 // the structure for each node of the symbol table
 typedef struct Table_Node
 {
 	int scope; // the scope of this piece of the symbol table
-	unordered_map<string, Symbol> symbols; // symbol table hash map <id, symbol>
+	unordered_map<string, Symbol&> symbols; // symbol table hash map <id, symbol>
 	Table_Node* parent; // the enclosing scope
 } Table_Node;
 
@@ -29,12 +31,13 @@ class Semantic_Analyzer
 	public:
 		Semantic_Analyzer(Node&, bool); // constructor
 		Node AST; // the abstract syntax tree
-		int numErrors; // was an error found?
+		int numErrors; // number of errors found
+		int numWarn; // number of warnings found
 	// private class access
 	private:
 		bool verbose;
 		void constructAST(Node&, queue<Node>&, int);
-		void constructSymbolTable(Node, Table_Node*, queue<Table_Node>&, int);
+		void constructSymbolTable(Node, Table_Node*, queue<Symbol*>&, int);
 		void printAST(Node, int);
 		Node nmake(string, string, int, int);
 };
@@ -44,6 +47,7 @@ Semantic_Analyzer::Semantic_Analyzer(Node& CST, bool v)
 {
 	verbose = v;
 	numErrors = 0; // start with no errors, of course
+	numWarn = 0; // start with no warnings, of course
 	queue<Node> AST_queue;
 	constructAST(CST, AST_queue, 0);
 	if(!AST_queue.empty())
@@ -60,14 +64,61 @@ Semantic_Analyzer::Semantic_Analyzer(Node& CST, bool v)
 	// so we can iterate through it and print out all the symbols
 	// since iterating through a tree where pointers are to parent
 	// nodes instead of child nodes is a bit trickier
-	queue<Table_Node> symTblPrntQ; // symbol table print queue
+	queue<Symbol*> symTblPrntQ; // symbol table print queue
 
 	constructSymbolTable(AST, nullptr, symTblPrntQ, 0);
+	queue<Symbol*> savedQ = symTblPrntQ; // save the queue for second traversal
+	
+	// traverse the table to warn about unused variables
+	while(!symTblPrntQ.empty())
+	{
+		Symbol* sPointer = symTblPrntQ.front();
+		Symbol sym = *sPointer;
+		// warn the user if a variable is never used
+		if(!sym.used)
+		{
+			string init = (sym.initialized) ? "initialized" : "uninitialized"; // is the variable at least initialized? modify the warning
+			cout << "[WARN]Line " << sym.lineNum << ": " << "The " << init << 
+			" variable " << sym.name << " is never used." << endl;
+			++numWarn;
+		}
+		symTblPrntQ.pop();
+	}
+	
+	// print symbol table
+	if(verbose)
+	{
+		cout <<
+			"______________________________________________________________________" << endl <<
+			setw(30) << left << "" << "SYMBOL TABLE" << setw(30) << right << "" << endl <<
+			"______________________________________________________________________" << endl;
+		while(!savedQ.empty())
+		{
+			Symbol sym = *savedQ.front();
+			string type = sym.type;
+			// rename type so there are no square brackets
+			if(type == "[int]") type = "int";
+			else if(type == "[string]") type = "string";
+			else type = "boolean";
+			// print out symbol table
+			cout << left <<
+				"[NAME: " << setw(5) << sym.name.substr(1,1) << "]" << 
+				"[TYPE: " << setw(10) << type << "]" << 
+				"[SCOPE: " << setw(12) << sym.scope << "]" <<
+				"[LINE: "<< setw(10) << sym.lineNum << "]" << endl;
+			savedQ.pop();
+		}
+		cout << "______________________________________________________________________" << endl;
+	}
 	
 }
 
-
-void Semantic_Analyzer::constructSymbolTable(Node n, Table_Node* tn, queue<Table_Node>& symTblPrntQ, int scope)
+// function to construct the symbol table and also catch scope & type errors along the way
+// n				: the current node in the AST being analyzed
+// *tn				: the symbol table node we are currently adding symbols to
+// &symTblPrintQ	: the print queue for all symbols
+// scope			: the current scope
+void Semantic_Analyzer::constructSymbolTable(Node n, Table_Node* tn, queue<Symbol*>& symTblPrntQ, int scope)
 {
 	Table_Node* toPass = tn; // table node to pass recursively
 	Table_Node& curTN = *tn; // let's us work with the actual table node
@@ -75,9 +126,8 @@ void Semantic_Analyzer::constructSymbolTable(Node n, Table_Node* tn, queue<Table
 	
 	if(n.name == "<Block>") // new scope
 	{
-		unordered_map<string, Symbol> symbols;
+		unordered_map<string, Symbol&> symbols;
 		Table_Node* newTN = new Table_Node{++scope, symbols, tn};
-		symTblPrntQ.push(*newTN); // add this table node to the queue of table nodes
 		toPass = newTN;
 	}
 	else if(n.name == "<VarDecl>") // variable declaration - add symbol
@@ -86,13 +136,16 @@ void Semantic_Analyzer::constructSymbolTable(Node n, Table_Node* tn, queue<Table
 		string type = children.front().name; // int/string/boolean
 		children.pop(); // remove type
 		string key = children.front().name; // the variable
-		Symbol symbol = {type, lineNum, 0, false, "", false, false}; // create a new symbol with the type
+		Symbol* sPointer = new Symbol{key, type, lineNum, 0, false, "", false, false, scope}; // create a new symbol with the type
+		Symbol& symbol = *sPointer;
 		if(curTN.symbols.emplace(key, symbol).second == false) // add the symbol to the symbol table node if it doesn't yet exist
 		{
 			cout << "[ERROR]Line " << lineNum << ": " << "The variable " << key <<
-			" was already declared in this scope on line " << curTN.symbols.at(key).lineNum << "." <<endl;
+			" was already declared in this scope on line " << curTN.symbols.at(key).lineNum << "." << endl;
 			++numErrors; // increment the number of errors found
 		}
+		else
+			symTblPrntQ.push(sPointer); // add symbol to print queue
 		return; // don't continue analyzing the child nodes
 	}
 	else if(n.name == "<AssignmentStatement>") // need to make sure this variable has been declred
@@ -119,7 +172,7 @@ void Semantic_Analyzer::constructSymbolTable(Node n, Table_Node* tn, queue<Table
 	}
 	else if(n.type == "id") // need to make sure the variable was initialized
 	{
-		Table_Node* scopeChecker = tn; // start checking this scope, but also move up to enclosing scopes
+		Table_Node*& scopeChecker = tn; // start checking this scope, but also move up to enclosing scopes
 		while(scopeChecker != nullptr) // while there is an enclosing scope to check
 		{
 			if((*scopeChecker).symbols.count(n.name) == 1) // if the variable was declared in this scope
@@ -127,13 +180,14 @@ void Semantic_Analyzer::constructSymbolTable(Node n, Table_Node* tn, queue<Table
 				Symbol& sym = (*scopeChecker).symbols.at(n.name);
 				if(sym.initialized == true) 
 				{
+					sym.used = true; // we now know the symbol has been used at least once
 					return; // symbol was indeed initialized - no problems
 				}
 				else
 				{
-					cout << "[ERROR]Line " << n.lineNum << ": " << "The variable " << n.name <<
+					cout << "[WARN]Line " << n.lineNum << ": " << "The variable " << n.name <<
 						" has not been initialized within this scope." << endl;
-					++numErrors;
+					++numWarn;
 					return; // don't go on to report variable not declared, as it was
 				}
 			}			
