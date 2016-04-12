@@ -3,7 +3,7 @@ ROBERT MITOLA
 ALAN LABOUSEUR
 MARIST COLLEGE
 CMPT 432 - DESIGN OF COMPILERS
-25 FEBRUARY 2016
+14 APRIL 2016
 */
 
 #include <iostream>
@@ -13,6 +13,7 @@ CMPT 432 - DESIGN OF COMPILERS
 #include <sstream>
 #include <iomanip>
 #include <queue>
+#include <unordered_map>
 
 #include "lexer.h" 	// The Lexer
 #include "parser.h"	// The Parser

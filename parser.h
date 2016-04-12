@@ -8,6 +8,7 @@ typedef struct Node
 	string name; // the name of this node
 	string type; // the type associated with this node	
 	int scope; // the scope associated with this node
+	int lineNum;
 	queue<Node>* children; // a queue containing the child nodes
 } Node;
 
@@ -29,6 +30,7 @@ class Parser
 		bool charList; // true if we are inside a charList
 		Token hpop(queue<Token>&);
 		Node nmake(string);
+		Node nmake(string, int);
 		void printCST(Node, int);
 		bool parseProgram(queue<Token>&);
 		bool parseBlock(queue<Token> &, queue<Node>&);
@@ -111,11 +113,23 @@ Token Parser::hpop(queue<Token>& que)
 
 // function to make a node
 // name		: name of this node
+// lineNum	: line number this node is accoaited with
 // returns	: a node
 Node Parser::nmake(string name)
 {
 	queue<Node>* children = new queue<Node>;
-	Node n = {name,"void", 0, children}; // initialize with type void and scope 0 to be changed during AST creation
+	Node n = {name, "void", 0, 0, children}; // initialize with type void and scope 0 to be changed during AST creation
+	return n;
+}
+
+// function to make a node where the line number is specified
+// name		: name of this node
+// lineNum	: line number this node is accoaited with
+// returns	: a node
+Node Parser::nmake(string name, int lineNum)
+{
+	queue<Node>* children = new queue<Node>;
+	Node n = {name, "void", 0, lineNum, children}; // initialize with type void and scope 0 to be changed during AST creation
 	return n;
 }
 
@@ -134,7 +148,6 @@ void Parser::printCST(Node n, int level)
 		children.pop();
 	}
 }
-
 
 // PARSE FUNCTIONS
 
@@ -501,8 +514,9 @@ bool Parser::parseCharList(queue<Token>& que, queue<Node>& nodes)
 		charList = false; // exiting the charList
 		// convert characters and other valid keywords into a charList
 		queue<Node>& children = *n.children;
-		string s = "[";
+		string s = "[\"";
 		Node saved = nodes.front(); // save ["] node
+		int lineNum = saved.lineNum; // get line number of string literal
 		nodes.pop(); // get rid of ["] node
 		while(!nodes.empty())
 		{
@@ -511,9 +525,9 @@ bool Parser::parseCharList(queue<Token>& que, queue<Node>& nodes)
 			else s.append(head.name.substr(1, head.name.length()-2)); // otherwise trim off [ and ]
 			nodes.pop();
 		}
-		s.append("]");
+		s.append("\"]");
 		nodes.push(saved); // put ["] back
-		children.push(nmake(s));
+		children.push(nmake(s, lineNum));
 		nodes.push(n); // push converted charList 
 	}
 	return true;
@@ -540,7 +554,7 @@ bool Parser::parseBoolval(queue<Token>& que, queue<Node>& nodes)
 bool Parser::matchT_DIGIT(Token tok, queue<Node>& nodes)
 {
 	// cout << "	match digit " << tok.value << endl;
-	Node n = nmake("["+tok.value+"]");
+	Node n = nmake("["+tok.value+"]", tok.lineNum);
 	n.type = "digit";
 	error = "[" + tok.value + "] is not a valid digit. Valid digits include natural numbers [0-9].";
 	errorLine = tok.lineNum;
@@ -556,7 +570,7 @@ bool Parser::matchT_DIGIT(Token tok, queue<Node>& nodes)
 bool Parser::matchT_ID(Token tok, queue<Node>& nodes)
 {
 	// cout << "	match id " << tok.value << endl;
-	Node n = nmake("["+tok.value+"]");
+	Node n = nmake("["+tok.value+"]", tok.lineNum);
 	n.type = "id";
 	if(!charList ) 
 		error = "[" + tok.value + "] is not a valid identifier. Valid identifiers include lowercase letters [a-z].";
@@ -575,7 +589,7 @@ bool Parser::matchT_ID(Token tok, queue<Node>& nodes)
 bool Parser::matchT_EOF(Token tok, queue<Node>& nodes)
 {
 	// cout << "	match eof " << tok.value << endl;
-	Node n = nmake("[$]");
+	Node n = nmake("[$]", tok.lineNum);
 	error = "Program cannot end with [" + tok.value + "]. Programs may only end with [$].";
 	errorLine = tok.lineNum;
 	if(tok.name == "T_EOF")
@@ -591,7 +605,7 @@ bool Parser::matchT_PLUS(Token tok, queue<Node>& nodes)
 {
 	// cout << "	match plus " << tok.value << endl;
 	// no error message here isnce an integer expression can also be just a digit, which is checked second
-	Node n = nmake("[+]");
+	Node n = nmake("[+]", tok.lineNum);
 	if(tok.name == "T_PLUS")
 	{
 		if(verbose) cout << "Matched a T_PLUS." << endl;
@@ -604,7 +618,7 @@ bool Parser::matchT_PLUS(Token tok, queue<Node>& nodes)
 bool Parser::matchT_ASSIGN(Token tok, queue<Node>& nodes)
 {
 	// cout << "	match assign " << tok.value << endl;
-	Node n = nmake("[=]");
+	Node n = nmake("[=]", tok.lineNum);
 	error = "Expecting the assignment operator [=]. Instead found the token [" + tok.value + "].";
 	errorLine = tok.lineNum;
 	if(tok.name == "T_ASSIGN")
@@ -619,7 +633,7 @@ bool Parser::matchT_ASSIGN(Token tok, queue<Node>& nodes)
 bool Parser::matchT_OPEN_BRACE(Token tok, queue<Node>& nodes)
 {
 	// cout << "	match open brace " << tok.value << endl;
-	Node n = nmake("[{]");
+	Node n = nmake("[{]", tok.lineNum);
 	error = "Expecting an open brace [{] before the [" + tok.value + "].";
 	errorLine = tok.lineNum;
 	if(tok.name == "T_OPEN_BRACE")
@@ -634,7 +648,7 @@ bool Parser::matchT_OPEN_BRACE(Token tok, queue<Node>& nodes)
 bool Parser::matchT_CLOSE_BRACE(Token tok, queue<Node>& nodes)
 {
 	// cout << "	match close brace " << tok.value << endl;
-	Node n = nmake("[}]");
+	Node n = nmake("[}]", tok.lineNum);
 	error = "Expecting a closing brace [}] before the [" + tok.value + "].";
 	errorLine = tok.lineNum;
 	if(tok.name == "T_CLOSE_BRACE")
@@ -649,7 +663,7 @@ bool Parser::matchT_CLOSE_BRACE(Token tok, queue<Node>& nodes)
 bool Parser::matchT_OPEN_PAREN(Token tok, queue<Node>& nodes)
 {
 	// cout << "	match open paren " << tok.value << endl;
-	Node n = nmake("[(]");
+	Node n = nmake("[(]", tok.lineNum);
 	error = "Expecting an open parenthesis [(] before the [" + tok.value + "].";
 	errorLine = tok.lineNum;
 	if(tok.name == "T_OPEN_PAREN")
@@ -664,7 +678,7 @@ bool Parser::matchT_OPEN_PAREN(Token tok, queue<Node>& nodes)
 bool Parser::matchT_CLOSE_PAREN(Token tok, queue<Node>& nodes)
 {
 	// cout << "	match close paren " << tok.value << endl;
-	Node n = nmake("[)]");
+	Node n = nmake("[)]", tok.lineNum);
 	error = "Expecting a closing parenthesis [)] before the [" + tok.value + "].";
 	errorLine = tok.lineNum;
 	if(tok.name == "T_CLOSE_PAREN")
@@ -679,7 +693,7 @@ bool Parser::matchT_CLOSE_PAREN(Token tok, queue<Node>& nodes)
 bool Parser::matchT_QUOTE(Token tok, queue<Node>& nodes)
 {
 	// cout << "	match quote " << tok.value << endl;
-	Node n = nmake("[\"]");
+	Node n = nmake("[\"]", tok.lineNum);
 	error = "Strings must be wrapped in quotation marks. Expecting a quote [\"] before the [" + tok.value + "].";
 	errorLine = tok.lineNum;
 	if(tok.name == "T_QUOTE")
@@ -694,7 +708,7 @@ bool Parser::matchT_QUOTE(Token tok, queue<Node>& nodes)
 bool Parser::matchT_EQUALS(Token tok, queue<Node>& nodes)
 {
 	// cout << "	match equals " << tok.value << endl;
-	Node n = nmake("[==]");
+	Node n = nmake("[==]", tok.lineNum);
 	error = "[" + tok.value + "] is not a valid boolean operator. Valid boolean operators include [==] and [!=].";
 	errorLine = tok.lineNum;
 	if(tok.name == "T_EQUALS")
@@ -709,7 +723,7 @@ bool Parser::matchT_EQUALS(Token tok, queue<Node>& nodes)
 bool Parser::matchT_NOT_EQUALS(Token tok, queue<Node>& nodes)
 {
 	// cout << "	match not equals " << tok.value << endl;
-	Node n = nmake("[!=]");
+	Node n = nmake("[!=]", tok.lineNum);
 	error = "[" + tok.value + "] is not a valid boolean operator. Valid boolean operators include [==] and [!=].";
 	errorLine = tok.lineNum;
 	if(tok.name == "T_NOT_EQUALS")
@@ -724,7 +738,7 @@ bool Parser::matchT_NOT_EQUALS(Token tok, queue<Node>& nodes)
 bool Parser::matchT_FALSE(Token tok, queue<Node>& nodes)
 {
 	// cout << "	match false " << tok.value << endl;
-	Node n = nmake("[false]");
+	Node n = nmake("[false]", tok.lineNum);
 	error = "[" + tok.value + "] is not a valid boolean value. Valid boolean values include [true] and [false].";
 	errorLine = tok.lineNum;
 	if(tok.name == "T_FALSE")
@@ -739,7 +753,7 @@ bool Parser::matchT_FALSE(Token tok, queue<Node>& nodes)
 bool Parser::matchT_TRUE(Token tok, queue<Node>& nodes)
 {
 	// cout << "	match true " << tok.value << endl;
-	Node n = nmake("[true]");
+	Node n = nmake("[true]", tok.lineNum);
 	error = "[" + tok.value + "] is not a valid boolean value. Valid boolean values include [true] and [false].";
 	errorLine = tok.lineNum;
 	if(tok.name == "T_TRUE")
@@ -754,7 +768,7 @@ bool Parser::matchT_TRUE(Token tok, queue<Node>& nodes)
 bool Parser::matchT_WHILE(Token tok, queue<Node>& nodes)
 {
 	// cout << "	match while " << tok.value << endl;
-	Node n = nmake("[while]");
+	Node n = nmake("[while]", tok.lineNum);
 	error = "Expecting the [while] keyword before the [" + tok.value + "].";
 	errorLine = tok.lineNum;
 	if(tok.name == "T_WHILE")
@@ -769,7 +783,7 @@ bool Parser::matchT_WHILE(Token tok, queue<Node>& nodes)
 bool Parser::matchT_PRINT(Token tok, queue<Node>& nodes)
 {
 	// cout << "	match print " << tok.value << endl;
-	Node n = nmake("[print]");
+	Node n = nmake("[print]", tok.lineNum);
 	error = "Expecting the [print] keyword before the [" + tok.value + "].";
 	errorLine = tok.lineNum;
 	if(tok.name == "T_PRINT")
@@ -784,7 +798,7 @@ bool Parser::matchT_PRINT(Token tok, queue<Node>& nodes)
 bool Parser::matchT_STRING(Token tok, queue<Node>& nodes)
 {
 	// cout << "	match string " << tok.value << endl;
-	Node n = nmake("[string]");
+	Node n = nmake("[string]", tok.lineNum);
 	error = "Expecting the [string] keyword before the [" + tok.value + "].";
 	errorLine = tok.lineNum;
 	if(tok.name == "T_STRING")
@@ -799,7 +813,7 @@ bool Parser::matchT_STRING(Token tok, queue<Node>& nodes)
 bool Parser::matchT_BOOLEAN(Token tok, queue<Node>& nodes)
 {
 	// cout << "	match bool " << tok.value << endl;
-	Node n = nmake("[boolean]");
+	Node n = nmake("[boolean]", tok.lineNum);
 	error = "Expecting the [boolean] keyword before the [" + tok.value + "].";
 	errorLine = tok.lineNum;
 	if(tok.name == "T_BOOLEAN")
@@ -814,7 +828,7 @@ bool Parser::matchT_BOOLEAN(Token tok, queue<Node>& nodes)
 bool Parser::matchT_INT(Token tok, queue<Node>& nodes)
 {
 	// cout << "	match int " << tok.value << endl;
-	Node n = nmake("[int]");
+	Node n = nmake("[int]", tok.lineNum);
 	error = "Expecting the [int] keyword before the [" + tok.value + "].";
 	errorLine = tok.lineNum;
 	if(tok.name == "T_INT")
@@ -829,7 +843,7 @@ bool Parser::matchT_INT(Token tok, queue<Node>& nodes)
 bool Parser::matchT_IF(Token tok, queue<Node>& nodes)
 {
 	// cout << "	match if " << tok.value << endl;
-	Node n = nmake("[if]");
+	Node n = nmake("[if]", tok.lineNum);
 	error = "Expecting keyword [if] before the [" + tok.value + "].";
 	errorLine = tok.lineNum;
 	if(tok.name == "T_IF")
@@ -844,7 +858,7 @@ bool Parser::matchT_IF(Token tok, queue<Node>& nodes)
 bool Parser::matchT_SPACE(Token tok, queue<Node>& nodes)
 {
 	// cout << "	match space " << tok.value << endl;
-	Node n = nmake("[space]");
+	Node n = nmake("[space]", tok.lineNum);
 	error = "[" + tok.value + "] is not a valid character. Characters can only be lowercase letters [a-z] or the space character [ ].";
 	errorLine = tok.lineNum;
 	if(tok.name == "T_SPACE")

@@ -1,6 +1,10 @@
 {
 
 	int x
+	string x
+	int q
+	x = 1 + y
+	x = 1 + q
 	string y
 	boolean z
 	x = 1 + 1
@@ -8,19 +12,14 @@
 	z = true
 	while(1 == x)
 	{
-		if(y != "hello world")
+		if(y == "hello world")
 		{
+			y = "wooooo"
 			print(4)
-			print("hi")
-			print(z)
 		}
 	}
-
+	{
+		print(z)
+	}
 }
 $
-
-{
-	int a
-	string b
-	print("bye")
-}
