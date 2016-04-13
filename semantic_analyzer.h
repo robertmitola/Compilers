@@ -1,6 +1,7 @@
 using namespace std;
 using std::string;
 using std::queue;
+using std::vector;
 using std::unordered_map;
 
 // the Symbol structure (for the symbol table)
@@ -25,20 +26,31 @@ typedef struct Table_Node
 	Table_Node* parent; // the enclosing scope
 } Table_Node;
 
+// the AST node structure
+typedef struct AST_Node
+{
+	string name; // the name of this node
+	string type; // the type associated with this node	
+	int scope; // the scope associated with this node
+	int lineNum;
+	vector<AST_Node>* children; // a queue containing the child nodes
+} AST_Node;
+
 class Semantic_Analyzer
 {
 	// public class access
 	public:
 		Semantic_Analyzer(Node&, bool); // constructor
-		Node AST; // the abstract syntax tree
+		AST_Node AST; // the abstract syntax tree
 		int numErrors; // number of errors found
 		int numWarn; // number of warnings found
 	// private class access
 	private:
 		bool verbose;
 		void constructAST(Node&, queue<Node>&, int);
-		void constructSymbolTable(Node, Table_Node*, queue<Symbol*>&, int);
-		void printAST(Node, int);
+		AST_Node resolveTypes(Node&, queue<Node>&);
+		void constructSymbolTable(AST_Node&, Table_Node*, queue<Symbol*>&, int);
+		void printAST(AST_Node, int);
 		Node nmake(string, string, int, int);
 };
 
@@ -52,12 +64,7 @@ Semantic_Analyzer::Semantic_Analyzer(Node& CST, bool v)
 	constructAST(CST, AST_queue, 0);
 	if(!AST_queue.empty())
 	{
-		AST = AST_queue.front();
-	}
-	if(verbose) // if verbose mode is on
-	{
-		cout << endl << "The Abstract Syntax Tree:" << endl;
-		printAST(AST, 0); // output the CST
+		AST = resolveTypes(AST_queue.front(), *AST_queue.front().children); // resolves types, except for individual ids
 	}
 	
 	// we'll need to store each symbol table node in this queue
@@ -65,15 +72,16 @@ Semantic_Analyzer::Semantic_Analyzer(Node& CST, bool v)
 	// since iterating through a tree where pointers are to parent
 	// nodes instead of child nodes is a bit trickier
 	queue<Symbol*> symTblPrntQ; // symbol table print queue
-
-	constructSymbolTable(AST, nullptr, symTblPrntQ, 0);
+	constructSymbolTable(AST, nullptr, symTblPrntQ, 0); // construct the symbol table
 	queue<Symbol*> savedQ = symTblPrntQ; // save the queue for second traversal
+	
+	// type check
+	
 	
 	// traverse the table to warn about unused variables
 	while(!symTblPrntQ.empty())
 	{
-		Symbol* sPointer = symTblPrntQ.front();
-		Symbol sym = *sPointer;
+		Symbol sym = *symTblPrntQ.front();
 		// warn the user if a variable is never used
 		if(!sym.used)
 		{
@@ -85,9 +93,12 @@ Semantic_Analyzer::Semantic_Analyzer(Node& CST, bool v)
 		symTblPrntQ.pop();
 	}
 	
-	// print symbol table
-	if(verbose)
+	if(verbose) // if verbose mode is on
 	{
+		cout << endl << "The Abstract Syntax Tree:" << endl;
+		printAST(AST, 0); // print the AST
+	
+		// print symbol table
 		cout <<
 			"______________________________________________________________________" << endl <<
 			setw(30) << left << "" << "SYMBOL TABLE" << setw(30) << right << "" << endl <<
@@ -110,7 +121,45 @@ Semantic_Analyzer::Semantic_Analyzer(Node& CST, bool v)
 		}
 		cout << "______________________________________________________________________" << endl;
 	}
-	
+}
+
+// assigns types to each node of the AST
+// NOTE: types of variables (ids) are not assigned here, but are instead in constructSymbolTable
+// &node	 : the node being analyzed
+// $children : the children of &node
+// returns	 : a root AST_Node of the entire AST
+AST_Node Semantic_Analyzer::resolveTypes(Node& node, queue<Node>& children)
+{
+	string name = node.name;
+	AST_Node newNode;
+	newNode.name = name;
+	newNode.type = node.type;
+	newNode.scope = node.scope;
+	newNode.lineNum = node.lineNum;
+	newNode.children = new vector<AST_Node>;
+		
+	if(name == "[int]" || name == "[string]" || name == "[boolean]" || name == "[true]" || name == "[false]") // obvious types
+	{
+		if(name == "[int]") newNode.type = "int";
+		else if(name == "[string]") newNode.type = "string";
+		else if(name == "[boolean]" || name == "[true]" || name == "[false]") newNode.type = "boolean";
+	}
+	else if(!children.empty()) // if this node has children we'll have to recurse until we find the type for it
+	{
+		vector<AST_Node>*& newChildren = newNode.children; // the new AST will contain vector children instead of queues for better traversal
+		string newType = "void"; // default type
+		while(!children.empty()) // recurse through the children
+		{
+			AST_Node n = resolveTypes(children.front(), *children.front().children);
+			(*newChildren).push_back(n);
+			if(n.type == "int" || n.type == "string" || n.type == "boolean")
+				newType = n.type; // the new AST_Node will have the same type as the children
+			children.pop();
+		}
+		newNode.type = newType;
+		newNode.children = newChildren;
+	}
+	return newNode;
 }
 
 // function to construct the symbol table and also catch scope & type errors along the way
@@ -118,11 +167,11 @@ Semantic_Analyzer::Semantic_Analyzer(Node& CST, bool v)
 // *tn				: the symbol table node we are currently adding symbols to
 // &symTblPrintQ	: the print queue for all symbols
 // scope			: the current scope
-void Semantic_Analyzer::constructSymbolTable(Node n, Table_Node* tn, queue<Symbol*>& symTblPrntQ, int scope)
+void Semantic_Analyzer::constructSymbolTable(AST_Node& n, Table_Node* tn, queue<Symbol*>& symTblPrntQ, int scope)
 {
 	Table_Node* toPass = tn; // table node to pass recursively
 	Table_Node& curTN = *tn; // let's us work with the actual table node
-	queue<Node> children = *n.children; // get the node's children
+	vector<AST_Node>& children = *n.children; // get the node's children
 	
 	if(n.name == "<Block>") // new scope
 	{
@@ -134,8 +183,7 @@ void Semantic_Analyzer::constructSymbolTable(Node n, Table_Node* tn, queue<Symbo
 	{
 		int lineNum = children.front().lineNum; // line number of the symbol
 		string type = children.front().name; // int/string/boolean
-		children.pop(); // remove type
-		string key = children.front().name; // the variable
+		string key = children.at(1).name; // the variable
 		Symbol* sPointer = new Symbol{key, type, lineNum, 0, false, "", false, false, scope}; // create a new symbol with the type
 		Symbol& symbol = *sPointer;
 		if(curTN.symbols.emplace(key, symbol).second == false) // add the symbol to the symbol table node if it doesn't yet exist
@@ -145,13 +193,15 @@ void Semantic_Analyzer::constructSymbolTable(Node n, Table_Node* tn, queue<Symbo
 			++numErrors; // increment the number of errors found
 		}
 		else
+		{
 			symTblPrntQ.push(sPointer); // add symbol to print queue
+			children.at(1).type = type; // assign the variable AST_Node its type here
+		}
 		return; // don't continue analyzing the child nodes
 	}
 	else if(n.name == "<AssignmentStatement>") // need to make sure this variable has been declred
 	{
-		Node var = children.front(); // left hand side of expression (the variable)
-		children.pop();
+		AST_Node& var = children.front(); // left hand side of expression (the variable)
 		Table_Node* scopeChecker = tn; // start checking this scope, but also move up to enclosing scopes
 		while(scopeChecker != nullptr) // while there is an enclosing scope to check
 		{
@@ -159,7 +209,8 @@ void Semantic_Analyzer::constructSymbolTable(Node n, Table_Node* tn, queue<Symbo
 			{	
 				Symbol& sym = (*scopeChecker).symbols.at(var.name);
 				sym.initialized = true;
-				constructSymbolTable(children.front(), toPass, symTblPrntQ, scope); // recurse on right side of assignment statement
+				var.type = sym.type; // assign the variable AST_Node its type here
+				constructSymbolTable(children.at(1), toPass, symTblPrntQ, scope); // recurse on right side of assignment statement
 				return; // symbol was indeed declared - no problems
 			}			
 			scopeChecker = (*scopeChecker).parent; // go to next enclosing scope
@@ -178,18 +229,18 @@ void Semantic_Analyzer::constructSymbolTable(Node n, Table_Node* tn, queue<Symbo
 			if((*scopeChecker).symbols.count(n.name) == 1) // if the variable was declared in this scope
 			{	
 				Symbol& sym = (*scopeChecker).symbols.at(n.name);
+				n.type = sym.type; // assign the AST_Node its type here
 				if(sym.initialized == true) 
 				{
 					sym.used = true; // we now know the symbol has been used at least once
-					return; // symbol was indeed initialized - no problems
 				}
 				else
 				{
 					cout << "[WARN]Line " << n.lineNum << ": " << "The variable " << n.name <<
 						" has not been initialized within this scope." << endl;
 					++numWarn;
-					return; // don't go on to report variable not declared, as it was
 				}
+				return; // don't go on to report variable not declared, as it was
 			}			
 			scopeChecker = (*scopeChecker).parent; // go to next enclosing scope
 		}
@@ -200,10 +251,9 @@ void Semantic_Analyzer::constructSymbolTable(Node n, Table_Node* tn, queue<Symbo
 		return; // don't continue analyzing the child nodes
 	}
 	
-	while(!children.empty()) // for each child node
+	for(vector<AST_Node>::iterator it=children.begin(); it != children.end(); ++it) // for each child node
 	{
-		constructSymbolTable(children.front(), toPass, symTblPrntQ, scope); // recurse
-		children.pop();
+		constructSymbolTable(*it, toPass, symTblPrntQ, scope); // recurse
 	}
 }
 
@@ -223,18 +273,17 @@ Node Semantic_Analyzer::nmake(string name, string type, int scope, int lineNum)
 // prints out the abstract syntax tree
 // n		: the current node
 // level	: the depth of this node
-void Semantic_Analyzer::printAST(Node n, int level)
+void Semantic_Analyzer::printAST(AST_Node n, int level)
 {
 	for(int i=0; i < level; ++i) // for the node's depth
 		cout << "-"; // print out a corresponding number of dashes
 	cout << n.name <<
 	"(Line No. " << n.lineNum << ")" << 
-	"(Scope " << n.scope << ")" << endl; // print node's name
-	queue<Node> children = *n.children; // get the node's children
-	while(!children.empty()) // for each child node
+	"(Type " << n.type << ")" << endl; // print node's name
+	vector<AST_Node> children = *n.children; // get the node's children
+	for(vector<AST_Node>::iterator it = children.begin(); it != children.end(); ++it) // for each child node
 	{
-		printAST(children.front(), level+1); // recurse
-		children.pop();
+		printAST(*it, level+1); // recurse
 	}
 }
 
@@ -347,6 +396,7 @@ void Semantic_Analyzer::constructAST(Node& node, queue<Node>& AST, int scope)
 		// cout << "Analyzing type/char list/boolop/boolval" << endl;
 		queue<Node>& children = *node.children;
 		Node& node = children.front();
+		if(name == "<CharList>") node.type = "string";
 		AST.push(nmake(node.name, node.type, scope, node.lineNum));
 		return;
 	}
@@ -436,6 +486,7 @@ void Semantic_Analyzer::constructAST(Node& node, queue<Node>& AST, int scope)
 	else // id, digit
 	{
 		// cout << "Analyzing id/digit" << endl;
+		if(type == "digit") type = "int";
 		AST.push(nmake(name, type, scope, lineNum));
 		return;
 	}
