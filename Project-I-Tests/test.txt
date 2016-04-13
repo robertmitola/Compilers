@@ -1,0 +1,30 @@
+{
+
+	int x
+	string x
+	string q
+	x = 1 + 
+	y
+	x = 1 + q
+	x = 1 + true
+	string y
+	boolean z
+	y = "hello world"
+	z = true
+	while(1 == x)
+	{
+		int x
+		if(y == "hello world")
+		{
+			string b
+			y = "wooooo"
+			print(4)
+		}
+	}
+	{
+		int x
+		x = 2
+		print(z)
+	}
+}
+$
