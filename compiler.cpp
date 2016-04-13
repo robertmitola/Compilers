@@ -92,18 +92,18 @@ int main(int argc, char *argv[])
 			cin.ignore(); // cin to pause program compilation
 		}
 		
-		cout << " ____________________________" << endl << 
-		"| COMPILING PROGRAM No. " << setw(5) << progNum << "|" << endl <<
-		"+_____________________________________________________________________"<< endl;
+		cout << " _____________________________" << endl << 
+		"| COMPILING PROGRAM No. " << setw(5) << progNum << " |" << endl <<
+		"+_____________________________+_______________________________________"<< endl;
 	
 		////////// LEX //////////////////////////////////////////////////
-		cout << "Performing Lexical Analysis..." << endl << endl;
+		cout << "Performing Lexical Analysis..." << endl;
 		Lexer lex(programs.front()); // run the lexer by constructing one
 		queue<Token> que = lex.tokQue; // retreive the token queue
 	
 		// report lexical errors here
-		cout << endl << "[" << lex.numErrors << " lexical error(s) found.]"
-		<< " [" << lex.numWarnings << " lexical warning(s) found.]" << endl << endl;
+		cout << "[" << lex.numErrors << " lexical error(s) found.]"
+		<< " [" << lex.numWarnings << " lexical warning(s) found.]" << endl;
 	
 		// exit if lexical errors were found
 		if(lex.numErrors > 0)
@@ -132,14 +132,14 @@ int main(int argc, char *argv[])
 		}
 		
 		// indicate completion of lexical analysis
-		cout << endl << "Lexical Analysis complete!" << endl;
+		cout << "Lexical Analysis complete!" << endl;
 	
 		////////// PARSE ////////////////////////////////////////////////
-		cout << endl << "Performing Parsing..." << endl << endl;
+		cout << "Performing Parsing..." << endl;
 		Parser parse(lex.tokQue, verbose); // run the Parser by constructing one
 	
 		// report parser errors here
-		cout << endl << "[" << parse.numErrors << " parse error(s) found.]" << endl;
+		cout << "[" << parse.numErrors << " parse error(s) found.]" << endl;
 	
 		// exit if parser errors were found
 		if(parse.numErrors > 0)
@@ -150,15 +150,15 @@ int main(int argc, char *argv[])
 		}
 	
 		// indicate completion of parsing
-		cout << endl << "Parsing complete!" << endl;
+		cout << "Parsing complete!" << endl;
 		
 		////////// SEMANTIC ANALYSIS ///////////////////////////////////
-		cout << endl << "Performing Semantic Analysis..." << endl << endl;
+		cout << "Performing Semantic Analysis..." << endl;
 		Semantic_Analyzer semantics(parse.CST, verbose);
 		
 		// report lexical errors here
-		cout << endl << "[" << semantics.numErrors << " semantic error(s) found.]"
-		<< " [" << semantics.numWarn << " semantic warning(s) found.]" << endl << endl;
+		cout << "[" << semantics.numErrors << " semantic error(s) found.]"
+		<< " [" << semantics.numWarn << " semantic warning(s) found.]" << endl;
 	
 		// exit if lexical errors were found
 		if(semantics.numErrors > 0)
@@ -169,7 +169,7 @@ int main(int argc, char *argv[])
 		}
 		
 		// indicate completion of semantic analysis
-		cout << endl << "Semantic Analysis complete!" << endl;
+		cout << "Semantic Analysis complete!" << endl;
 		
 		programs.pop(); // on to the next program
 		++progNum; // so increment the program number

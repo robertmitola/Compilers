@@ -97,13 +97,16 @@ Semantic_Analyzer::Semantic_Analyzer(Node& CST, bool v)
 	
 	if(verbose) // if verbose mode is on
 	{
-		cout << endl << "The Abstract Syntax Tree:" << endl;
+		cout <<
+			"______________________________________________________________________" << endl <<
+			setw(25) << left << "" << "ABSTRACT SYNTAX TREE" << setw(25) << right << "" << endl <<
+			"______________________________________________________________________" << endl;
 		printAST(AST, 0); // print the AST
-	
+		cout << "______________________________________________________________________" << endl;
 		// print symbol table
 		cout <<
 			"______________________________________________________________________" << endl <<
-			setw(30) << left << "" << "SYMBOL TABLE" << setw(30) << right << "" << endl <<
+			setw(29) << left << "" << "SYMBOL TABLE" << setw(29) << right << "" << endl <<
 			"______________________________________________________________________" << endl;
 		while(!savedQ.empty())
 		{
@@ -131,13 +134,14 @@ void Semantic_Analyzer::typeCheck(AST_Node& node)
 {
 	string& name = node.name;
 	vector<AST_Node>& children = *node.children;
-	int lineNum = node.lineNum;
+	int lineNum;
 	if(children.size() > 1 && children.at(1).type == "id") 
 		children.at(1).type = "void"; // change id type to void since this is an undeclared id in my underlying logic
 	if(name == "<AssignmentStatement>") // must check assignment's type matches variable's type
 	{
 		if(children.at(0).type != children.at(1).type)
 		{
+			lineNum = children.at(0).lineNum;
 			cout << "[ERROR]Line " << lineNum << ": (Type Mismatch) " << "The variable " << children.at(0).name <<
 				" can only be assigned a type of " << children.at(0).type << ", not " << children.at(1).type << "." <<endl;
 			++numErrors;
@@ -149,7 +153,7 @@ void Semantic_Analyzer::typeCheck(AST_Node& node)
 		{
 			lineNum = children.at(1).lineNum;
 			cout << "[ERROR]Line " << lineNum << ": (Type Mismatch) " << "Only integers may be added together; a " <<
-				children.at(1).type << " " << children.at(1).name << " was found in your addition equation." << endl;
+				children.at(1).type << " was found in your addition equation." << endl;
 			++numErrors;
 		}
 	}
@@ -157,10 +161,12 @@ void Semantic_Analyzer::typeCheck(AST_Node& node)
 	{
 		if(children.at(0).type != children.at(1).type)
 		{
+			lineNum = children.at(0).lineNum;
 			string grammar1 = (children.at(0).type == "int") ? "An " : "A ";
 			string grammar2 = (children.at(1).type == "int") ? "an " : "a ";
-			cout << "[ERROR]Line " << lineNum << ": (Type Mismatch) " << grammar1 << children.at(0).name <<
-				" cannot be compared to " << grammar2 << children.at(1).type << "." << endl;
+			cout << "[ERROR]Line " << lineNum << ": (Type Mismatch) " << grammar1 << children.at(0).type << " " <<
+				" cannot be compared to " << grammar2 << children.at(1).type << " " <<
+				"." << endl;
 			++numErrors;
 		}
 	}
@@ -323,8 +329,9 @@ void Semantic_Analyzer::printAST(AST_Node n, int level)
 	for(int i=0; i < level; ++i) // for the node's depth
 		cout << "-"; // print out a corresponding number of dashes
 	cout << n.name <<
-	"(Line No. " << n.lineNum << ")" << 
-	"(Type " << n.type << ")" << endl; // print node's name
+	// "(Line No. " << n.lineNum << ")" << // print node's line number 
+	// "(Type " << n.type << ")" << // print node's name
+	endl;
 	vector<AST_Node> children = *n.children; // get the node's children
 	for(vector<AST_Node>::iterator it = children.begin(); it != children.end(); ++it) // for each child node
 	{

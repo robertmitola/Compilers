@@ -94,8 +94,12 @@ Parser::Parser(queue<Token>& que, bool v)
 	}
 	if(verbose) // if verbose mode is on
 	{
-		cout << endl << "The Concrete Syntax Tree:" << endl;
+		cout <<
+			"______________________________________________________________________" << endl <<
+			setw(25) << left << "" << "CONCRETE SYNTAX TREE" << setw(25) << right << "" << endl <<
+			"______________________________________________________________________" << endl;
 		printCST(CST, 0); // output the CST
+		cout << "______________________________________________________________________" << endl;
 	}
 }
 
@@ -560,7 +564,7 @@ bool Parser::matchT_DIGIT(Token tok, queue<Node>& nodes)
 	errorLine = tok.lineNum;
 	if(tok.name == "T_DIGIT")
 	{
-		if(verbose) cout << "Matched a T_DIGIT." << endl;
+		// if(verbose) cout << "Matched a T_DIGIT." << endl;
 		nodes.push(n);
 		return true;
 	}
@@ -579,7 +583,7 @@ bool Parser::matchT_ID(Token tok, queue<Node>& nodes)
 	errorLine = tok.lineNum;
 	if(tok.name == "T_ID")
 	{
-		if(verbose) cout << "Matched a T_ID." << endl;
+		// if(verbose) cout << "Matched a T_ID." << endl;
 		nodes.push(n);
 		return true;
 	}
@@ -594,7 +598,7 @@ bool Parser::matchT_EOF(Token tok, queue<Node>& nodes)
 	errorLine = tok.lineNum;
 	if(tok.name == "T_EOF")
 	{
-		if(verbose) cout << "Matched a T_EOF." << endl;
+		// if(verbose) cout << "Matched a T_EOF." << endl;
 		nodes.push(n);
 		return true;
 	}
@@ -608,7 +612,7 @@ bool Parser::matchT_PLUS(Token tok, queue<Node>& nodes)
 	Node n = nmake("[+]", tok.lineNum);
 	if(tok.name == "T_PLUS")
 	{
-		if(verbose) cout << "Matched a T_PLUS." << endl;
+		// if(verbose) cout << "Matched a T_PLUS." << endl;
 		nodes.push(n);
 		return true;
 	}
@@ -623,7 +627,7 @@ bool Parser::matchT_ASSIGN(Token tok, queue<Node>& nodes)
 	errorLine = tok.lineNum;
 	if(tok.name == "T_ASSIGN")
 	{
-		if(verbose) cout << "Matched a T_ASSIGN." << endl;
+		// if(verbose) cout << "Matched a T_ASSIGN." << endl;
 		nodes.push(n);
 		return true;
 	}
@@ -638,7 +642,7 @@ bool Parser::matchT_OPEN_BRACE(Token tok, queue<Node>& nodes)
 	errorLine = tok.lineNum;
 	if(tok.name == "T_OPEN_BRACE")
 	{
-		if(verbose) cout << "Matched a T_OPEN_BRACE." << endl;
+		// if(verbose) cout << "Matched a T_OPEN_BRACE." << endl;
 		nodes.push(n);
 		return true;
 	}
@@ -653,7 +657,7 @@ bool Parser::matchT_CLOSE_BRACE(Token tok, queue<Node>& nodes)
 	errorLine = tok.lineNum;
 	if(tok.name == "T_CLOSE_BRACE")
 	{
-		if(verbose) cout << "Matched a T_CLOSE_BRACE." << endl;
+		// if(verbose) cout << "Matched a T_CLOSE_BRACE." << endl;
 		nodes.push(n);
 		return true;
 	}
@@ -668,7 +672,7 @@ bool Parser::matchT_OPEN_PAREN(Token tok, queue<Node>& nodes)
 	errorLine = tok.lineNum;
 	if(tok.name == "T_OPEN_PAREN")
 	{
-		if(verbose) cout << "Matched a T_OPEN_PAREN." << endl;
+		// if(verbose) cout << "Matched a T_OPEN_PAREN." << endl;
 		nodes.push(n);
 		return true;
 	}
@@ -683,7 +687,7 @@ bool Parser::matchT_CLOSE_PAREN(Token tok, queue<Node>& nodes)
 	errorLine = tok.lineNum;
 	if(tok.name == "T_CLOSE_PAREN")
 	{
-		if(verbose) cout << "Matched a T_CLOSE_PAREN." << endl;
+		// if(verbose) cout << "Matched a T_CLOSE_PAREN." << endl;
 		nodes.push(n);
 		return true;
 	}
@@ -698,7 +702,7 @@ bool Parser::matchT_QUOTE(Token tok, queue<Node>& nodes)
 	errorLine = tok.lineNum;
 	if(tok.name == "T_QUOTE")
 	{
-		if(verbose) cout << "Matched a T_QUOTE." << endl;
+		// if(verbose) cout << "Matched a T_QUOTE." << endl;
 		nodes.push(n);
 		return true;
 	}
@@ -713,7 +717,7 @@ bool Parser::matchT_EQUALS(Token tok, queue<Node>& nodes)
 	errorLine = tok.lineNum;
 	if(tok.name == "T_EQUALS")
 	{
-		if(verbose) cout << "Matched a T_EQUALS." << endl;
+		// if(verbose) cout << "Matched a T_EQUALS." << endl;
 		nodes.push(n);
 		return true;
 	}
@@ -728,7 +732,7 @@ bool Parser::matchT_NOT_EQUALS(Token tok, queue<Node>& nodes)
 	errorLine = tok.lineNum;
 	if(tok.name == "T_NOT_EQUALS")
 	{
-		if(verbose) cout << "Matched a T_NOT_EQUALS." << endl;
+		// if(verbose) cout << "Matched a T_NOT_EQUALS." << endl;
 		nodes.push(n);
 		return true;
 	}
@@ -743,7 +747,7 @@ bool Parser::matchT_FALSE(Token tok, queue<Node>& nodes)
 	errorLine = tok.lineNum;
 	if(tok.name == "T_FALSE")
 	{
-		if(verbose) cout << "Matched a T_FALSE." << endl;
+		// if(verbose) cout << "Matched a T_FALSE." << endl;
 		nodes.push(n);
 		return true;
 	}
@@ -758,7 +762,7 @@ bool Parser::matchT_TRUE(Token tok, queue<Node>& nodes)
 	errorLine = tok.lineNum;
 	if(tok.name == "T_TRUE")
 	{
-		if(verbose) cout << "Matched a T_TRUE." << endl;
+		// if(verbose) cout << "Matched a T_TRUE." << endl;
 		nodes.push(n);
 		return true;
 	}
@@ -773,7 +777,7 @@ bool Parser::matchT_WHILE(Token tok, queue<Node>& nodes)
 	errorLine = tok.lineNum;
 	if(tok.name == "T_WHILE")
 	{
-		if(verbose) cout << "Matched a T_WHILE." << endl;
+		// if(verbose) cout << "Matched a T_WHILE." << endl;
 		nodes.push(n);
 		return true;
 	}
@@ -788,7 +792,7 @@ bool Parser::matchT_PRINT(Token tok, queue<Node>& nodes)
 	errorLine = tok.lineNum;
 	if(tok.name == "T_PRINT")
 	{
-		if(verbose) cout << "Matched a T_PRINT." << endl;
+		// if(verbose) cout << "Matched a T_PRINT." << endl;
 		nodes.push(n);
 		return true;
 	}
@@ -803,7 +807,7 @@ bool Parser::matchT_STRING(Token tok, queue<Node>& nodes)
 	errorLine = tok.lineNum;
 	if(tok.name == "T_STRING")
 	{
-		if(verbose) cout << "Matched a T_STRING." << endl;
+		// if(verbose) cout << "Matched a T_STRING." << endl;
 		nodes.push(n);
 		return true;
 	}
@@ -818,7 +822,7 @@ bool Parser::matchT_BOOLEAN(Token tok, queue<Node>& nodes)
 	errorLine = tok.lineNum;
 	if(tok.name == "T_BOOLEAN")
 	{
-		if(verbose) cout << "Matched a T_BOOLEAN." << endl;
+		// if(verbose) cout << "Matched a T_BOOLEAN." << endl;
 		nodes.push(n);
 		return true;
 	}
@@ -833,7 +837,7 @@ bool Parser::matchT_INT(Token tok, queue<Node>& nodes)
 	errorLine = tok.lineNum;
 	if(tok.name == "T_INT")
 	{
-		if(verbose) cout << "Matched a T_INT." << endl;
+		// if(verbose) cout << "Matched a T_INT." << endl;
 		nodes.push(n);
 		return true;
 	}
@@ -848,7 +852,7 @@ bool Parser::matchT_IF(Token tok, queue<Node>& nodes)
 	errorLine = tok.lineNum;
 	if(tok.name == "T_IF")
 	{
-		if(verbose) cout << "Matched a T_IF." << endl;
+		// if(verbose) cout << "Matched a T_IF." << endl;
 		nodes.push(n);
 		return true;
 	}
@@ -863,7 +867,7 @@ bool Parser::matchT_SPACE(Token tok, queue<Node>& nodes)
 	errorLine = tok.lineNum;
 	if(tok.name == "T_SPACE")
 	{
-		if(verbose) cout << "Matched a T_SPACE." << endl;
+		// if(verbose) cout << "Matched a T_SPACE." << endl;
 		nodes.push(n);
 		return true;
 	}
