@@ -1,0 +1,19 @@
+{
+
+	int x
+	string y
+	boolean z
+	x = 1 + 1
+	y = "hello world"
+	z = true
+	while(1 == x)
+	{
+		if(y != "hello world")
+		{
+			print(4)
+			print("hi")
+			print(z)
+		}
+	}
+
+}
