@@ -52,6 +52,7 @@ class Semantic_Analyzer
 		void constructSymbolTable(AST_Node&, Table_Node*, queue<Symbol*>&, int);
 		void printAST(AST_Node, int);
 		Node nmake(string, string, int, int);
+		void typeCheck(AST_Node&);
 };
 
 // constructor
@@ -64,7 +65,8 @@ Semantic_Analyzer::Semantic_Analyzer(Node& CST, bool v)
 	constructAST(CST, AST_queue, 0);
 	if(!AST_queue.empty())
 	{
-		AST = resolveTypes(AST_queue.front(), *AST_queue.front().children); // resolves types, except for individual ids
+		// resolves types, except for individual ids, while at the same time constructing a new AST using vectors instead of queues
+		AST = resolveTypes(AST_queue.front(), *AST_queue.front().children);
 	}
 	
 	// we'll need to store each symbol table node in this queue
@@ -76,7 +78,7 @@ Semantic_Analyzer::Semantic_Analyzer(Node& CST, bool v)
 	queue<Symbol*> savedQ = symTblPrntQ; // save the queue for second traversal
 	
 	// type check
-	
+	typeCheck(AST);
 	
 	// traverse the table to warn about unused variables
 	while(!symTblPrntQ.empty())
@@ -121,6 +123,49 @@ Semantic_Analyzer::Semantic_Analyzer(Node& CST, bool v)
 		}
 		cout << "______________________________________________________________________" << endl;
 	}
+}
+
+// type checks the AST
+// &node	: the current node being analyzed
+void Semantic_Analyzer::typeCheck(AST_Node& node)
+{
+	string& name = node.name;
+	vector<AST_Node>& children = *node.children;
+	int lineNum = node.lineNum;
+	if(children.size() > 1 && children.at(1).type == "id") 
+		children.at(1).type = "void"; // change id type to void since this is an undeclared id in my underlying logic
+	if(name == "<AssignmentStatement>") // must check assignment's type matches variable's type
+	{
+		if(children.at(0).type != children.at(1).type)
+		{
+			cout << "[ERROR]Line " << lineNum << ": (Type Mismatch) " << "The variable " << children.at(0).name <<
+				" can only be assigned a type of " << children.at(0).type << ", not " << children.at(1).type << "." <<endl;
+			++numErrors;
+		}
+	}
+	else if(name == "<+>") // must check right child node has a type of int
+	{
+		if(children.at(1).type != "int")
+		{
+			lineNum = children.at(1).lineNum;
+			cout << "[ERROR]Line " << lineNum << ": (Type Mismatch) " << "Only integers may be added together; a " <<
+				children.at(1).type << " " << children.at(1).name << " was found in your addition equation." << endl;
+			++numErrors;
+		}
+	}
+	else if(name == "<==>" || name == "<!=>") // must check both child nodes have the same type
+	{
+		if(children.at(0).type != children.at(1).type)
+		{
+			string grammar1 = (children.at(0).type == "int") ? "An " : "A ";
+			string grammar2 = (children.at(1).type == "int") ? "an " : "a ";
+			cout << "[ERROR]Line " << lineNum << ": (Type Mismatch) " << grammar1 << children.at(0).name <<
+				" cannot be compared to " << grammar2 << children.at(1).type << "." << endl;
+			++numErrors;
+		}
+	}
+	for(vector<AST_Node>::iterator it=children.begin(); it != children.end(); ++it) // for each child node
+		typeCheck(*it); // recurse
 }
 
 // assigns types to each node of the AST
@@ -195,7 +240,7 @@ void Semantic_Analyzer::constructSymbolTable(AST_Node& n, Table_Node* tn, queue<
 		else
 		{
 			symTblPrntQ.push(sPointer); // add symbol to print queue
-			children.at(1).type = type; // assign the variable AST_Node its type here
+			children.at(1).type = type.substr(1, type.length()-2); // assign the variable AST_Node its type here
 		}
 		return; // don't continue analyzing the child nodes
 	}
@@ -209,7 +254,7 @@ void Semantic_Analyzer::constructSymbolTable(AST_Node& n, Table_Node* tn, queue<
 			{	
 				Symbol& sym = (*scopeChecker).symbols.at(var.name);
 				sym.initialized = true;
-				var.type = sym.type; // assign the variable AST_Node its type here
+				var.type = sym.type.substr(1, sym.type.length()-2); // assign the variable AST_Node its type here
 				constructSymbolTable(children.at(1), toPass, symTblPrntQ, scope); // recurse on right side of assignment statement
 				return; // symbol was indeed declared - no problems
 			}			
@@ -229,7 +274,7 @@ void Semantic_Analyzer::constructSymbolTable(AST_Node& n, Table_Node* tn, queue<
 			if((*scopeChecker).symbols.count(n.name) == 1) // if the variable was declared in this scope
 			{	
 				Symbol& sym = (*scopeChecker).symbols.at(n.name);
-				n.type = sym.type; // assign the AST_Node its type here
+				n.type = sym.type.substr(1, sym.type.length()-2); // assign the AST_Node its type here
 				if(sym.initialized == true) 
 				{
 					sym.used = true; // we now know the symbol has been used at least once
@@ -397,6 +442,7 @@ void Semantic_Analyzer::constructAST(Node& node, queue<Node>& AST, int scope)
 		queue<Node>& children = *node.children;
 		Node& node = children.front();
 		if(name == "<CharList>") node.type = "string";
+		if(name == "<boolop>") node.name = "<" + node.name.substr(1, node.name.length()-2) + ">"; // modify the boolop a little for the AST
 		AST.push(nmake(node.name, node.type, scope, node.lineNum));
 		return;
 	}

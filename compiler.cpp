@@ -14,6 +14,7 @@ CMPT 432 - DESIGN OF COMPILERS
 #include <iomanip>
 #include <queue>
 #include <unordered_map>
+#include <vector>
 
 #include "lexer.h" 	// The Lexer
 #include "parser.h"	// The Parser
@@ -154,6 +155,18 @@ int main(int argc, char *argv[])
 		////////// SEMANTIC ANALYSIS ///////////////////////////////////
 		cout << endl << "Performing Semantic Analysis..." << endl << endl;
 		Semantic_Analyzer semantics(parse.CST, verbose);
+		
+		// report lexical errors here
+		cout << endl << "[" << semantics.numErrors << " semantic error(s) found.]"
+		<< " [" << semantics.numWarn << " semantic warning(s) found.]" << endl << endl;
+	
+		// exit if lexical errors were found
+		if(semantics.numErrors > 0)
+		{
+			// skip to next program
+			programs.pop(); // on to the next program
+			continue; 
+		}
 		
 		// indicate completion of semantic analysis
 		cout << endl << "Semantic Analysis complete!" << endl;
