@@ -16,6 +16,7 @@ typedef struct Symbol
 	bool initialized; // default false; becomes true if symbol is initialized after declaration
 	bool used; // default false; becomes true if symbol is used after initialization
 	int scope; // scope of the symbol
+	int subscope; // for parallel scopes with same parent node
 } Symbol;
 
 // the structure for each node of the symbol table
@@ -53,6 +54,7 @@ class Semantic_Analyzer
 		void printAST(AST_Node, int);
 		Node nmake(string, string, int, int);
 		void typeCheck(AST_Node&);
+		unordered_map<int, int> scopeMap; // <scope, scubscope> map
 };
 
 // constructor
@@ -116,11 +118,19 @@ Semantic_Analyzer::Semantic_Analyzer(Node& CST, bool v)
 			if(type == "[int]") type = "int";
 			else if(type == "[string]") type = "string";
 			else type = "boolean";
+			// math to get the scope to print out correctly in the symbol table
+			int i = 1;
+			int n = 10;
+			while(sym.scope / (pow(n,i)) > 1)
+			{
+				++i;
+				if(i > 9) break; // can't give it more than 10 spaces
+			}
 			// print out symbol table
 			cout << left <<
 				"[NAME: " << setw(5) << sym.name.substr(1,1) << "]" << 
 				"[TYPE: " << setw(10) << type << "]" << 
-				"[SCOPE: " << setw(12) << sym.scope << "]" <<
+				"[SCOPE: " << setw(i) << sym.scope << "-" << setw(11-i) << sym.subscope << "]" <<
 				"[LINE: "<< setw(10) << sym.lineNum << "]" << endl;
 			savedQ.pop();
 		}
@@ -139,7 +149,8 @@ void Semantic_Analyzer::typeCheck(AST_Node& node)
 		children.at(1).type = "void"; // change id type to void since this is an undeclared id in my underlying logic
 	if(name == "<AssignmentStatement>") // must check assignment's type matches variable's type
 	{
-		if(children.at(0).type != children.at(1).type)
+		if(!(children.at(0).type == "id") && !(children.at(0).type == "void")
+			&& children.at(0).type != children.at(1).type)
 		{
 			lineNum = children.at(0).lineNum;
 			cout << "[ERROR]Line " << lineNum << ": (Type Mismatch) " << "The variable " << children.at(0).name <<
@@ -149,7 +160,8 @@ void Semantic_Analyzer::typeCheck(AST_Node& node)
 	}
 	else if(name == "<+>") // must check right child node has a type of int
 	{
-		if(children.at(1).type != "int")
+		if(!(children.at(1).type == "id") && !(children.at(1).type == "void")
+			&& children.at(1).type != "int")
 		{
 			lineNum = children.at(1).lineNum;
 			cout << "[ERROR]Line " << lineNum << ": (Type Mismatch) " << "Only integers may be added together; a " <<
@@ -159,7 +171,9 @@ void Semantic_Analyzer::typeCheck(AST_Node& node)
 	}
 	else if(name == "<==>" || name == "<!=>") // must check both child nodes have the same type
 	{
-		if(children.at(0).type != children.at(1).type)
+		if(!(children.at(0).type == "id") && !(children.at(0).type == "void") &&
+			!(children.at(1).type == "id") && !(children.at(1).type == "void") &&
+			children.at(0).type != children.at(1).type)
 		{
 			lineNum = children.at(0).lineNum;
 			string grammar1 = (children.at(0).type == "int") ? "An " : "A ";
@@ -218,6 +232,7 @@ AST_Node Semantic_Analyzer::resolveTypes(Node& node, queue<Node>& children)
 // *tn				: the symbol table node we are currently adding symbols to
 // &symTblPrintQ	: the print queue for all symbols
 // scope			: the current scope
+// scope			: for parallel depth scopes (e.g. 2, 2-2, 2-3; where these 3 scopes all have the root scope as a parent)
 void Semantic_Analyzer::constructSymbolTable(AST_Node& n, Table_Node* tn, queue<Symbol*>& symTblPrntQ, int scope)
 {
 	Table_Node* toPass = tn; // table node to pass recursively
@@ -229,13 +244,21 @@ void Semantic_Analyzer::constructSymbolTable(AST_Node& n, Table_Node* tn, queue<
 		unordered_map<string, Symbol&> symbols;
 		Table_Node* newTN = new Table_Node{++scope, symbols, tn};
 		toPass = newTN;
+		// scope setting
+		if(scopeMap.count(scope) == 0) scopeMap.emplace(scope, 1); // first of this scope
+		else // increment subscope otherwise
+		{
+			int newSubscope = ++scopeMap.at(scope);
+			scopeMap.erase(scope);
+			scopeMap.emplace(scope, newSubscope);
+		}
 	}
 	else if(n.name == "<VarDecl>") // variable declaration - add symbol
 	{
 		int lineNum = children.front().lineNum; // line number of the symbol
 		string type = children.front().name; // int/string/boolean
 		string key = children.at(1).name; // the variable
-		Symbol* sPointer = new Symbol{key, type, lineNum, 0, false, "", false, false, scope}; // create a new symbol with the type
+		Symbol* sPointer = new Symbol{key, type, lineNum, 0, false, "", false, false, scope, scopeMap.at(scope)}; // create a new symbol with the type
 		Symbol& symbol = *sPointer;
 		if(curTN.symbols.emplace(key, symbol).second == false) // add the symbol to the symbol table node if it doesn't yet exist
 		{

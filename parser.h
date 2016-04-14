@@ -413,7 +413,7 @@ bool Parser::parseIntExpression(queue<Token>& que, queue<Node>& nodes)
 	
 	if(matchT_DIGIT(hpop(que), *n.children))
 	{
-		savedQue = que;
+		queue<Token> savedQue2 = que;
 		if(matchT_PLUS(hpop(que), *n.children) &&
 			parseExpression(que, *n.children))
 		{
@@ -422,7 +422,7 @@ bool Parser::parseIntExpression(queue<Token>& que, queue<Node>& nodes)
 		}
 		else
 		{
-			que = savedQue;
+			que = savedQue2;
 			nodes.push(n);
 			return true;
 		}
@@ -465,11 +465,12 @@ bool Parser::parseBooleanExpression(queue<Token>& que, queue<Node>& nodes)
 	else
 	{
 		que = savedQue;
-		if(parseBoolval(que, *n.children))
+		if(parseBoolval(que, *n.children)) 
 		{
 			nodes.push(n);
 			return true;
 		}
+		que = savedQue;
 		return false;
 	}
 }
@@ -560,7 +561,7 @@ bool Parser::matchT_DIGIT(Token tok, queue<Node>& nodes)
 	// cout << "	match digit " << tok.value << endl;
 	Node n = nmake("["+tok.value+"]", tok.lineNum);
 	n.type = "digit";
-	error = "[" + tok.value + "] is not a valid digit. Valid digits include natural numbers [0-9].";
+	error = "[" + tok.value + "] is not a valid digit. Valid digits include numbers [0-9].";
 	errorLine = tok.lineNum;
 	if(tok.name == "T_DIGIT")
 	{

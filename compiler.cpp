@@ -83,12 +83,13 @@ int main(int argc, char *argv[])
 	if(leftover) programs.push(toAdd); // add program with forgotten $
 	
 	// compile all the programs in order
-	int progNum = 1; // program number for keeping track of which is being compiled
+	int progNum = 0; // program number for keeping track of which is being compiled
 	while(!programs.empty())
 	{
+		++progNum; // so increment the program number
 		if(progNum > 1) // if not compiling first program
 		{
-			cout << endl << "PRESS ENTER TO COMPILE NEXT PROGRAM..." << endl << endl;
+			cout << endl << "PRESS ENTER TO COMPILE NEXT PROGRAM... (Ctrl+C to stop.)" << endl << endl;
 			cin.ignore(); // cin to pause program compilation
 		}
 		
@@ -172,7 +173,7 @@ int main(int argc, char *argv[])
 		cout << "Semantic Analysis complete!" << endl;
 		
 		programs.pop(); // on to the next program
-		++progNum; // so increment the program number
 	}
+	cout << "End of compilation." << endl;
 	return 0; // exit successful
 }
