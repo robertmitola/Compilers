@@ -1,0 +1,24 @@
+{
+	string a
+	a = "unused initialized"
+}
+$
+
+{
+	string a
+	a = "uninitialized and used"
+	boolean b
+	if true
+	{
+		print(b)
+	}
+}
+$
+
+{
+	string a
+	a = "uninitialzed and not used"
+	int b
+	print(a)
+}
+$

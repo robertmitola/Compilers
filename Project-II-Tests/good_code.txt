@@ -1,0 +1,50 @@
+{
+}
+$
+
+{
+	int a
+	int b
+	{
+		a = 1
+		string c
+		c = "basic good program"
+		print(c)
+	}
+	{
+		b = 2
+	}
+	b = 1 + a
+	print(b)
+}
+$
+
+{
+	string a
+	a = "redeclared in separate scope"
+	print(a)
+	if(1 == 1)
+	{
+		string a
+		a = "a"
+		while(a == "a")
+		{
+			int a
+			a = 1
+			print(a)
+		}
+	}
+}
+$
+
+{
+	string a a = "used and assigned in other scopes"
+	if(1 == 1)
+	{
+		print(a)
+	}
+	{
+		a = "a"
+	}
+}
+$

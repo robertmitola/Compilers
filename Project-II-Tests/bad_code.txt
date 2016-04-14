@@ -1,0 +1,51 @@
+{
+	print("initialized before declaration")
+	a = 3
+}
+$
+
+{
+	{
+		print("not in scope")
+		int a
+		a = 3
+	}
+	while(false)
+	{
+		a = 2
+		print(a)
+	}
+}
+$
+
+{
+	string x
+	x = "redecalred id"
+	int x
+	{
+		while true 
+		{
+			if false
+			{
+				boolean n
+				n = false
+				boolean n
+			}
+		}
+	}
+}
+$
+
+{
+	int a
+	string c
+	a = "type mismatches"
+	if(a == true)
+	{
+		boolean b
+		b = 1
+		print(b)
+	}
+	a = 1 + c
+}
+$
