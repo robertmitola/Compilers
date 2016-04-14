@@ -1,0 +1,31 @@
+TEST RESULTS
+
+good_code.txt (no errors or warnings):
+
+Program 1 : Empty program aside from a block and $ to test; works fine.
+Program 2 : Tests variable usage in nested scope.
+Program 3 : Tests variable redeclaration in nested scope; successfully assigns a spearate symbol as well as throws no errors.
+Program 4 : Tests using a variable and reassigning a variable in separate nested scopes.
+
+questionable_code.txt (warnings):
+
+Program 1 : Tests an unused, but initialized, variable.
+Program 2 : Tests an uninitialized and used variable.
+PRogram 3 : Tests and uninitialized and unused variable.
+
+bad_code.txt (errors):
+
+Program 1 : Tests initialization before declaration.
+Program 2 : Tests variable usage outside of scope or any nested scope.
+Program 3 : Tests variable redeclaration in the same scope with a different type as well as matching type. Both throw errors.
+Program 4 : Tests all forms of type mismatches, which can occur in:
+  1) assignment statements
+  2) addition
+  3) comparisons
+  
+Comment on Bugs:
+I had to work out very few bugs when it came to testing the Semantic Analyzer. However, as I would
+test I came across numerous unseen bugs with my Parser, which I corrected. When it came to the
+Lexer I had very few bugs as well, and none are popping up again. In addition, my Parser error
+messages were sometimes obscur, and needed refining. Parsing seems to be a major area of dedication
+in Compiler design for this reason.
