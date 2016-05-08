@@ -37,7 +37,7 @@ class Code_Generator
 		void printRuntimeEnvironment(); // prints the runtime environment out
 		void addStrings(unordered_map<string, int>&); // adds string literals to runtime environment
 		void addTemps(AST_Node&); // adds temporary variables to the temp table
-		void generateCode(AST_Node&); // generates the code
+		void generateCode(AST_Node&, unordered_map<string, int>&); // generates the code
 		void cpPP(); // increments code pointer
 		void addTemp(AST_Node&, int); // adds a temporary address to the temp table
 		void replaceTemps(); // replaces temporary variables with memory addresses
@@ -64,7 +64,7 @@ Code_Generator::Code_Generator(AST_Node& AST, unordered_map<string, int>& string
 	addTemps(AST);
 	
 	// generate the code
-	generateCode(AST);
+	generateCode(AST, stringsMap);
 	
 	// replace temporary variable with their memory addresses
 	replaceTemps();
@@ -125,18 +125,20 @@ void Code_Generator::cpPP()
 }
 
 // function to generate the byte code
-// ast	: the abstract syntax tree being used
-void Code_Generator::generateCode(AST_Node& ast)
+// ast			: the abstract syntax tree being used
+// stringsMap	: map of strings in memory
+void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& stringsMap)
 {
 	// variables
 	string name = ast.name;
+	string type = ast.type;
 	vector<AST_Node>& children = *ast.children;
 	
 	if(name == "<Block>")
 	{
 		// recurse on child nodes
 		for(vector<AST_Node>::iterator it=children.begin(); it != children.end(); ++it) // for each child node
-			generateCode(*it); // recurse
+			generateCode(*it, stringsMap); // recurse
 	}
 	else if(name == "<VarDecl>")
 	{
@@ -156,7 +158,35 @@ void Code_Generator::generateCode(AST_Node& ast)
 		cpPP();
 		return;
 	}
-	else if(name = "<PrintStatement>")
+	else if(name == "<AssignmentStatement>")
+	{
+		if(type == "int")
+		{
+			
+		}
+		else if(type == "string")
+		{
+			AST_Node& var = children.at(0); // the variable
+			string key = children.at(1).name.substr(2, children.at(1).name.length()-4);
+			int addressOfString = stringsMap.at(key); // get the memory address of the string
+			runtime_environment[codePointer] = 169; // a9
+			cpPP();
+			runtime_environment[codePointer] = addressOfString;
+			cpPP();
+			runtime_environment[codePointer] = 141; // 8d
+			cpPP();
+			runtime_environment[codePointer] = 0;
+			addTemp(var, codePointer); // temp var
+			cpPP();
+			runtime_environment[codePointer] = 0;
+			cpPP();
+		}
+		else if(type == "boolean")
+		{
+			
+		}
+	}
+	else if(name == "<PrintStatement>")
 	{
 		runtime_environment[codePointer] = 0;
 		cpPP();
