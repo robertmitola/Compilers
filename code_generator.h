@@ -32,6 +32,7 @@ class Code_Generator
 		bool verbose; // verbose output
 		int codePointer; // points to where code goes in the runtime environment
 		int stopPointer; // points to where code should stop in the runtime environment
+		int value; // value for int expressions
 		unordered_map<string, Temp_Var> tempTable; // temporary variables table
 		void printRuntimeEnvironment(); // prints the runtime environment out
 		void addStrings(unordered_map<string, int>&); // adds string literals to runtime environment
@@ -50,6 +51,7 @@ Code_Generator::Code_Generator(AST_Node& AST, unordered_map<string, int>& string
 	numErrors = 0; // start with no errors
 	numWarn = 0; // start with no warnings
 	codePointer = 0; // start code at first byte
+	value = 0;
 	stopPointer = 255; // stop at byte 255 to start - this will change as string literals are added
 	// fill the runtime environment with 00s
 	for(int i = 0; i < 256; ++i)
@@ -130,7 +132,13 @@ void Code_Generator::generateCode(AST_Node& ast)
 	string name = ast.name;
 	vector<AST_Node>& children = *ast.children;
 	
-	if(name == "<VarDecl>")
+	if(name == "<Block>")
+	{
+		// recurse on child nodes
+		for(vector<AST_Node>::iterator it=children.begin(); it != children.end(); ++it) // for each child node
+			generateCode(*it); // recurse
+	}
+	else if(name == "<VarDecl>")
 	{
 		AST_Node& var = children.at(1); // the variable
 		runtime_environment[codePointer] = 169;
@@ -148,10 +156,63 @@ void Code_Generator::generateCode(AST_Node& ast)
 		cpPP();
 		return;
 	}
+	else if(name = "<PrintStatement>")
+	{
+		runtime_environment[codePointer] = 0;
+		cpPP();
+	}
 	
-	// recurse on child nodes
-	for(vector<AST_Node>::iterator it=children.begin(); it != children.end(); ++it) // for each child node
-		generateCode(*it); // recurse
+	else if(name == "<+>")
+	{
+		if(children.at(1).name.at(1) > 96 && children.at(1).name.at(1) < 123) // seocnd child is id and not <+>
+		{
+			if(value > 255) // passed max int value
+			{
+				cout << "[WARN]Line " << ast.lineNum << ": " << "The maximum value of an integer is 255. Compilation will continue with the max." << endl;
+				++numWarn;
+				value = 255;
+			}
+			// load accumulator with the constant value and add the variable's value to it
+			// do not store the accumulator in memory
+			runtime_environment[codePointer] = 169; // a9
+			cpPP();
+			runtime_environment[codePointer] = value;
+			cpPP();
+			runtime_environment[codePointer] = 109; // 6d
+			cpPP();
+			runtime_environment[codePointer] = 0;
+			addTemp(children.at(1), codePointer); // temp var
+			cpPP();
+			runtime_environment[codePointer] = 0;
+			cpPP();
+			value = 0; // reset value
+		}
+		else if(children.at(1).name.at(1) > 47 && children.at(1).name.at(1) < 58) // seocnd child is a digit and not <+>
+		{
+			int num = children.at(1).name.at(1) - 48;
+			value += num; // add to the value
+			if(value > 255) // passed max int value
+			{
+				cout << "[WARN]Line " << ast.lineNum << ": " << "The maximum value of an integer is 255. Compilation will continue with the max." << endl;
+				++numWarn;
+				value = 255;
+			}
+			// load accumulator with the constant value
+			// do not store the accumulator in memory
+			runtime_environment[codePointer] = 169; // a9
+			cpPP();
+			runtime_environment[codePointer] = value;
+			cpPP();
+		}
+	}
+	else if(name.length() == 3 && name.at(1) > 47 && name.at(1) < 58) // [0-9]
+	{
+		int num = name.at(1) - 48;
+		value += num; // add to the value
+		return;
+	}
+	
+	
 }
 
 // function to add all necessary temporary variables to the temporary variable table
