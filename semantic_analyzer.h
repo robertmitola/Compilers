@@ -99,6 +99,7 @@ Semantic_Analyzer::Semantic_Analyzer(Node& CST, bool v)
 	
 	if(verbose) // if verbose mode is on
 	{
+		// print the AST
 		cout <<
 			"______________________________________________________________________" << endl <<
 			setw(25) << left << "" << "ABSTRACT SYNTAX TREE" << setw(25) << right << "" << endl <<
@@ -221,7 +222,9 @@ AST_Node Semantic_Analyzer::resolveTypes(Node& node, queue<Node>& children)
 				newType = n.type; // the new AST_Node will have the same type as the children
 			children.pop();
 		}
-		newNode.type = newType;
+		// make sure boolean operators are always of type boolean
+		if(name == "<==>" || name == "<!=>") newNode.type = "boolean";
+		else newNode.type = newType;
 		newNode.children = newChildren;
 	}
 	return newNode;
@@ -242,7 +245,10 @@ void Semantic_Analyzer::constructSymbolTable(AST_Node& n, Table_Node* tn, queue<
 	if(n.name == "<Block>") // new scope
 	{
 		unordered_map<string, Symbol&> symbols;
-		Table_Node* newTN = new Table_Node{++scope, symbols, tn};
+		Table_Node* newTN = new Table_Node; //{++scope, symbols, tn};
+		newTN->scope = ++scope;
+		newTN->symbols = symbols;
+		newTN->parent = tn;
 		toPass = newTN;
 		// scope setting
 		if(scopeMap.count(scope) == 0) scopeMap.emplace(scope, 1); // first of this scope
@@ -258,7 +264,17 @@ void Semantic_Analyzer::constructSymbolTable(AST_Node& n, Table_Node* tn, queue<
 		int lineNum = children.front().lineNum; // line number of the symbol
 		string type = children.front().name; // int/string/boolean
 		string key = children.at(1).name; // the variable
-		Symbol* sPointer = new Symbol{key, type, lineNum, 0, false, "", false, false, scope, scopeMap.at(scope)}; // create a new symbol with the type
+		Symbol* sPointer = new Symbol; //{key, type, lineNum, 0, false, "", false, false, scope, scopeMap.at(scope)}; // create a new symbol with the type
+		sPointer->name = key;
+		sPointer->type = type;
+		sPointer->lineNum = lineNum;
+		sPointer->intVal = 0;
+		sPointer->boolVal = false;
+		sPointer->stringVal = "";
+		sPointer->initialized = false;
+		sPointer->used = false;
+		sPointer->scope = scope;
+		sPointer->subscope = scopeMap.at(scope);
 		Symbol& symbol = *sPointer;
 		if(curTN.symbols.emplace(key, symbol).second == false) // add the symbol to the symbol table node if it doesn't yet exist
 		{
@@ -351,7 +367,7 @@ void Semantic_Analyzer::printAST(AST_Node n, int level)
 {
 	for(int i=0; i < level; ++i) // for the node's depth
 		cout << "-"; // print out a corresponding number of dashes
-	cout << n.name <<
+	cout << n.name << " (" << n.type << ")" <<
 	// "(Line No. " << n.lineNum << ")" << // print node's line number 
 	// "(Type " << n.type << ")" << // print node's name
 	endl;
