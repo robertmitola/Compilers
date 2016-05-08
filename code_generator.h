@@ -31,8 +31,10 @@ class Code_Generator
 		bool verbose; // verbose output
 		int codePointer; // points to where code goes in the runtime environment
 		int stopPointer; // points to where code should stop in the runtime environment
+		unordered_map<string, Temp_Var> tempTable; // temporary variables table
 		void printRuntimeEnvironment(); // prints the runtime environment out
 		void addStrings(unordered_map<string, int>&); // adds string literals to runtime environment
+		void addTemps(AST_Node&); // adds temporary variables to the temp table
 };
 
 // constructor
@@ -51,6 +53,9 @@ Code_Generator::Code_Generator(AST_Node& AST, unordered_map<string, int>& string
 	// add all string literals to the runtime environment
 	addStrings(stringsMap);
 	
+	// add the necessary temporary variables
+	addTemps(AST);
+	
 	// verbose mode reporting
 	if(verbose)
 	{
@@ -62,6 +67,24 @@ Code_Generator::Code_Generator(AST_Node& AST, unordered_map<string, int>& string
 		printRuntimeEnvironment();
 		cout << "___|__________________________________________________________________" << endl;
 	}
+}
+
+// function to add all necessary temporary variables to the temporary variable table
+// ast	: the abstract syntax tree to get the variables from
+void Code_Generator::addTemps(AST_Node& ast)
+{
+	vector<AST_Node>& children = *ast.children; // child nodes
+	if(ast.name.length() == 3 && ast.name.at(1) > 96 && ast.name.at(1) < 123) // if this is an id
+	{
+		stringstream keyStream;
+		keyStream << ast.name.at(1) << "@" << ast.scope << "-" << ast.subscope;
+		string key = keyStream.str();
+		Temp_Var* tmp = new Temp_Var;
+		tempTable.emplace(key, *tmp);
+	}
+	// recurse on child nodes
+	for(vector<AST_Node>::iterator it=children.begin(); it != children.end(); ++it) // for each child node
+		addTemps(*it); // recurse
 }
 
 // function to add all string literals to the runtime environment and store their memory addresses
