@@ -19,6 +19,7 @@ CMPT 432 - DESIGN OF COMPILERS
 #include "lexer.h" 	// The Lexer
 #include "parser.h"	// The Parser
 #include "semantic_analyzer.h" // The Semantic Analyzer
+#include "code_generator.h" // The Code Generator
 
 using namespace std;
 using std::string;
@@ -157,11 +158,11 @@ int main(int argc, char *argv[])
 		cout << "Performing Semantic Analysis..." << endl;
 		Semantic_Analyzer semantics(parse.CST, verbose);
 		
-		// report lexical errors here
+		// report semantic errors here
 		cout << "[" << semantics.numErrors << " semantic error(s) found.]"
 		<< " [" << semantics.numWarn << " semantic warning(s) found.]" << endl;
 	
-		// exit if lexical errors were found
+		// exit if semantic errors were found
 		if(semantics.numErrors > 0)
 		{
 			// skip to next program
@@ -171,6 +172,25 @@ int main(int argc, char *argv[])
 		
 		// indicate completion of semantic analysis
 		cout << "Semantic Analysis complete!" << endl;
+		
+		////////// CODE GENERATION /////////////////////////////////////
+		cout << "Performing Code Generation..." << endl;
+		Code_Generator codeGen(semantics.AST, verbose);
+		
+		// report code gen errors here
+		cout << "[" << codeGen.numErrors << " semantic error(s) found.]"
+		<< " [" << codeGen.numWarn << " semantic warning(s) found.]" << endl;
+		
+		// exit if code gen errors were found
+		if(codeGen.numErrors > 0)
+		{
+			// skip to next program
+			programs.pop(); // on to the next program
+			continue; 
+		}
+		
+		// indicate completion of code generation
+		cout << "Code Generation complete!" << endl;
 		
 		programs.pop(); // on to the next program
 	}
