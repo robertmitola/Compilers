@@ -175,11 +175,11 @@ int main(int argc, char *argv[])
 		
 		////////// CODE GENERATION /////////////////////////////////////
 		cout << "Performing Code Generation..." << endl;
-		Code_Generator codeGen(semantics.AST, verbose);
+		Code_Generator codeGen(semantics.AST, semantics.stringsMap, verbose);
 		
 		// report code gen errors here
-		cout << "[" << codeGen.numErrors << " semantic error(s) found.]"
-		<< " [" << codeGen.numWarn << " semantic warning(s) found.]" << endl;
+		cout << "[" << codeGen.numErrors << " code generation error(s) found.]"
+		<< " [" << codeGen.numWarn << " code generation warning(s) found.]" << endl;
 		
 		// exit if code gen errors were found
 		if(codeGen.numErrors > 0)

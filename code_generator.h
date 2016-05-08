@@ -8,7 +8,7 @@ class Code_Generator
 {
 	// public class access
 	public:
-		Code_Generator(AST_Node&, bool); // constructor
+		Code_Generator(AST_Node&, unordered_map<string, int>&, bool); // constructor
 		int numErrors; // number of errors
 		int numWarn; // number of warnings
 		int runtime_environment [256]; // the runtime environment array
@@ -21,11 +21,12 @@ class Code_Generator
 };
 
 // constructor
-Code_Generator::Code_Generator(AST_Node& AST, bool v)
+Code_Generator::Code_Generator(AST_Node& AST, unordered_map<string, int>& stringsMap, bool v)
 {
 	// variable initialization
 	verbose = v; // set verbose to on or off
 	numErrors = 0; // start with no errors
+	numWarn = 0; // start with no warnings
 	codePointer = 0; // start code at first byte
 	stopPointer = 255; // stop at byte 255 to start - this will change as string literals are added
 	// fill the runtime environment with 00s

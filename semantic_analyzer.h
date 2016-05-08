@@ -45,6 +45,9 @@ class Semantic_Analyzer
 		AST_Node AST; // the abstract syntax tree
 		int numErrors; // number of errors found
 		int numWarn; // number of warnings found
+		// <string, memory address> map to save all the string literals in for later code generation
+		// the memory addresses are not stored until later code generation
+		unordered_map<string, int> stringsMap; 
 	// private class access
 	private:
 		bool verbose;
@@ -487,7 +490,12 @@ void Semantic_Analyzer::constructAST(Node& node, queue<Node>& AST, int scope)
 		// cout << "Analyzing type/char list/boolop/boolval" << endl;
 		queue<Node>& children = *node.children;
 		Node& node = children.front();
-		if(name == "<CharList>") node.type = "string";
+		if(name == "<CharList>") 
+		{
+			node.type = "string";
+			// add this string to the stringsMap for use in code generation
+			stringsMap.emplace(node.name.substr(2, node.name.length()-4), 0);
+		}
 		if(name == "<boolop>") node.name = "<" + node.name.substr(1, node.name.length()-2) + ">"; // modify the boolop a little for the AST
 		AST.push(nmake(node.name, node.type, scope, node.lineNum));
 		return;
