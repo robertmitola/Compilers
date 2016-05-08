@@ -7,6 +7,7 @@ using std::unordered_map;
 // temprary variable
 typedef struct Temp_Var
 {
+	bool string; // true if this is a string temporary variable
 	int address; // codePointer + address = address of the real variable
 	queue<int> addresses; // addresses of the temprary variables in the runtime environment
 } Temp_Var;
@@ -38,6 +39,7 @@ class Code_Generator
 		void generateCode(AST_Node&); // generates the code
 		void cpPP(); // increments code pointer
 		void addTemp(AST_Node&, int); // adds a temporary address to the temp table
+		void replaceTemps(); // replaces temporary variables with memory addresses
 };
 
 // constructor
@@ -61,6 +63,9 @@ Code_Generator::Code_Generator(AST_Node& AST, unordered_map<string, int>& string
 	
 	// generate the code
 	generateCode(AST);
+	
+	// replace temporary variable with their memory addresses
+	replaceTemps();
 	
 	// verbose mode reporting
 	if(verbose)
@@ -87,6 +92,21 @@ void Code_Generator::addTemp(AST_Node& var, int address)
 	temp.addresses.push(address);
 }
 
+// function to replace temporary variables
+void Code_Generator::replaceTemps()
+{
+	for ( auto it = tempTable.begin(); it != tempTable.end(); ++it )
+	{
+		Temp_Var& temp = it->second;
+		while(!temp.addresses.empty()) // for each temporary variable address
+		{
+			runtime_environment[temp.addresses.front()] = codePointer; // set temp variable to memory address that holds the real variable
+			temp.addresses.pop();
+		}
+		cpPP(); // increment the code pointer
+	}
+}
+
 // function to increment the code pointer and report out of memory errors
 void Code_Generator::cpPP()
 {
@@ -109,7 +129,6 @@ void Code_Generator::generateCode(AST_Node& ast)
 	// variables
 	string name = ast.name;
 	vector<AST_Node>& children = *ast.children;
-	queue<int> opCodes; // op codes to add
 	
 	if(name == "<VarDecl>")
 	{
@@ -194,7 +213,19 @@ void Code_Generator::printRuntimeEnvironment()
 	for(int i = 0; i < 32; ++i)
 	{
 		int hex = i*8; // points to corrent row
-		cout << setw(3) << right << hex << "| ";
+		int hex1 = hex / 16; // the first of the 2 hex digits that make up a byte
+		int hex2 = hex % 16; // the second of the 2 hex digits that make up a byte
+		char hexDigit1 = 0;
+		char hexDigit2 = 0;
+		if(hex1 > 9)
+			hexDigit1 = 55 + hex1; // capital letters in ASCII
+		else
+			hexDigit1 = 48 + hex1; // numbers in ASCII
+		if(hex2 > 9)
+			hexDigit2 = 55 + hex2; // capital letters in ASCII
+		else
+			hexDigit2 = 48 + hex2; // numbers in ASCII
+		cout << setw(2) << right << hexDigit1 << hexDigit2 << "| ";
 		for(int j = 0; j < 8; ++j)
 		{
 			int pointer = hex + j; // points to current element of array
