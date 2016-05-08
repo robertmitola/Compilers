@@ -8,7 +8,7 @@ using std::unordered_map;
 typedef struct Temp_Var
 {
 	int address; // codePointer + address = address of the real variable
-	queue<int*> addresses; // addresses of the temprary variables in the runtime environment
+	queue<int> addresses; // addresses of the temprary variables in the runtime environment
 } Temp_Var;
 
 // jump variable
@@ -35,6 +35,9 @@ class Code_Generator
 		void printRuntimeEnvironment(); // prints the runtime environment out
 		void addStrings(unordered_map<string, int>&); // adds string literals to runtime environment
 		void addTemps(AST_Node&); // adds temporary variables to the temp table
+		void generateCode(AST_Node&); // generates the code
+		void cpPP(); // increments code pointer
+		void addTemp(AST_Node&, int); // adds a temporary address to the temp table
 };
 
 // constructor
@@ -56,6 +59,9 @@ Code_Generator::Code_Generator(AST_Node& AST, unordered_map<string, int>& string
 	// add the necessary temporary variables
 	addTemps(AST);
 	
+	// generate the code
+	generateCode(AST);
+	
 	// verbose mode reporting
 	if(verbose)
 	{
@@ -67,6 +73,66 @@ Code_Generator::Code_Generator(AST_Node& AST, unordered_map<string, int>& string
 		printRuntimeEnvironment();
 		cout << "___|__________________________________________________________________" << endl;
 	}
+}
+
+// function to add a temporary variable to the temporary variable table
+// var		: the AST node containnig the temporary variable
+// address	: the address of the temporary variable
+void Code_Generator::addTemp(AST_Node& var, int address)
+{
+	stringstream keyStream;
+	keyStream << var.name.at(1) << "@" << var.scope << "-" << var.subscope;
+	string key = keyStream.str();
+	Temp_Var& temp = tempTable.at(key);
+	temp.addresses.push(address);
+}
+
+// function to increment the code pointer and report out of memory errors
+void Code_Generator::cpPP()
+{
+	++codePointer; // increment the code pointer
+	if(codePointer > stopPointer) // if we ran out of memory
+	{
+		codePointer = stopPointer; // prevent trying to access unreachable memory
+		if(numErrors < 1) // if we haven't yet reported this, do so
+		{
+			cout << "[ERROR]" << ": (OOM) " << "The runtime environment is out of memory. Please limit your program to 256 bytes." << endl;
+			++numErrors; // increment the number of errors
+		}
+	}
+}
+
+// function to generate the byte code
+// ast	: the abstract syntax tree being used
+void Code_Generator::generateCode(AST_Node& ast)
+{
+	// variables
+	string name = ast.name;
+	vector<AST_Node>& children = *ast.children;
+	queue<int> opCodes; // op codes to add
+	
+	if(name == "<VarDecl>")
+	{
+		AST_Node& var = children.at(1); // the variable
+		runtime_environment[codePointer] = 169;
+		cpPP(); // increment code pointer
+		// set the memoy address of uninitialzed variables to 0 if not a string (reference type), or the last byte for strings (empty string)
+		if(var.type == "string") runtime_environment[codePointer] = 255;
+		else runtime_environment[codePointer] = 0;
+		cpPP();
+		runtime_environment[codePointer] = 141;
+		cpPP();
+		runtime_environment[codePointer] = 0;
+		addTemp(var, codePointer); // temp var
+		cpPP();
+		runtime_environment[codePointer] = 0;
+		cpPP();
+		return;
+	}
+	
+	// recurse on child nodes
+	for(vector<AST_Node>::iterator it=children.begin(); it != children.end(); ++it) // for each child node
+		generateCode(*it); // recurse
 }
 
 // function to add all necessary temporary variables to the temporary variable table
@@ -91,6 +157,9 @@ void Code_Generator::addTemps(AST_Node& ast)
 // stringsMap	: the map containing all the strings
 void Code_Generator::addStrings(unordered_map<string, int>& stringsMap)
 {
+	// add in the string literals "true" and "false" for booleans (if they don't already exist)
+	stringsMap.emplace("true", 0);
+	stringsMap.emplace("false", 0);
 	// new stringsMap
 	unordered_map<string, int> newMap;
 	// for each string in the map
