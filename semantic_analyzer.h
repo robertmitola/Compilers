@@ -33,6 +33,7 @@ typedef struct AST_Node
 	string name; // the name of this node
 	string type; // the type associated with this node	
 	int scope; // the scope associated with this node
+	int subscope; // the subscope associated with this node
 	int lineNum;
 	vector<AST_Node>* children; // a queue containing the child nodes
 } AST_Node;
@@ -267,6 +268,8 @@ void Semantic_Analyzer::constructSymbolTable(AST_Node& n, Table_Node* tn, queue<
 		int lineNum = children.front().lineNum; // line number of the symbol
 		string type = children.front().name; // int/string/boolean
 		string key = children.at(1).name; // the variable
+		children.at(1).scope = scope; // set the AST node's scope
+		children.at(1).subscope = scopeMap.at(scope); // assign a subscope to this ast node
 		Symbol* sPointer = new Symbol; //{key, type, lineNum, 0, false, "", false, false, scope, scopeMap.at(scope)}; // create a new symbol with the type
 		sPointer->name = key;
 		sPointer->type = type;
@@ -301,6 +304,8 @@ void Semantic_Analyzer::constructSymbolTable(AST_Node& n, Table_Node* tn, queue<
 			if((*scopeChecker).symbols.count(var.name) == 1) // if the variable was declared in this scope
 			{	
 				Symbol& sym = (*scopeChecker).symbols.at(var.name);
+				var.scope = sym.scope; // set the AST node's scope to the symbol's
+				var.subscope = sym.subscope; // set AST node's subscope to the symbol's
 				sym.initialized = true;
 				var.type = sym.type.substr(1, sym.type.length()-2); // assign the variable AST_Node its type here
 				constructSymbolTable(children.at(1), toPass, symTblPrntQ, scope); // recurse on right side of assignment statement
@@ -322,6 +327,8 @@ void Semantic_Analyzer::constructSymbolTable(AST_Node& n, Table_Node* tn, queue<
 			if((*scopeChecker).symbols.count(n.name) == 1) // if the variable was declared in this scope
 			{	
 				Symbol& sym = (*scopeChecker).symbols.at(n.name);
+				n.scope = sym.scope; // set the AST node's scope to the symbol's
+				n.subscope = sym.subscope; // set AST node's subscope to the symbol's
 				n.type = sym.type.substr(1, sym.type.length()-2); // assign the AST_Node its type here
 				if(sym.initialized == true) 
 				{
@@ -370,7 +377,7 @@ void Semantic_Analyzer::printAST(AST_Node n, int level)
 {
 	for(int i=0; i < level; ++i) // for the node's depth
 		cout << "-"; // print out a corresponding number of dashes
-	cout << n.name << " (" << n.type << ")" <<
+	cout << n.name << " (" << n.scope << "-" << n.subscope << ")" <<
 	// "(Line No. " << n.lineNum << ")" << // print node's line number 
 	// "(Type " << n.type << ")" << // print node's name
 	endl;

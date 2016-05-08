@@ -4,6 +4,20 @@ using std::queue;
 using std::vector;
 using std::unordered_map;
 
+// temprary variable
+typedef struct Temp_Var
+{
+	int address; // codePointer + address = address of the real variable
+	queue<int*> addresses; // addresses of the temprary variables in the runtime environment
+} Temp_Var;
+
+// jump variable
+typedef struct Jump_Var
+{
+	int distance; // distance to jump
+	queue<int*> addresses; // addresses of the temporary jumps in the runtime environment
+} Jump_Var;
+
 class Code_Generator
 {
 	// public class access
