@@ -18,6 +18,7 @@ class Code_Generator
 		int codePointer; // points to where code goes in the runtime environment
 		int stopPointer; // points to where code should stop in the runtime environment
 		void printRuntimeEnvironment(); // prints the runtime environment out
+		void addStrings(unordered_map<string, int>&); // adds string literals to runtime environment
 };
 
 // constructor
@@ -33,6 +34,9 @@ Code_Generator::Code_Generator(AST_Node& AST, unordered_map<string, int>& string
 	for(int i = 0; i < 256; ++i)
 		runtime_environment[i] = 0;
 	
+	// add all string literals to the runtime environment
+	addStrings(stringsMap);
+	
 	// verbose mode reporting
 	if(verbose)
 	{
@@ -44,6 +48,38 @@ Code_Generator::Code_Generator(AST_Node& AST, unordered_map<string, int>& string
 		printRuntimeEnvironment();
 		cout << "___|__________________________________________________________________" << endl;
 	}
+}
+
+// function to add all string literals to the runtime environment and store their memory addresses
+// stringsMap	: the map containing all the strings
+void Code_Generator::addStrings(unordered_map<string, int>& stringsMap)
+{
+	// new stringsMap
+	unordered_map<string, int> newMap;
+	// for each string in the map
+	for(auto it = stringsMap.begin(); it != stringsMap.end(); ++it)
+	{
+		string str = it->first;
+		runtime_environment[stopPointer] = 0; // set the end-of-string character
+		--stopPointer; // decrement the stopPointer
+		// for each character in the string
+		for(int i = str.length(); i > 0; --i)
+		{
+			if(stopPointer <= codePointer) // if we have run out of memory
+			{
+				// report error and return
+				cout << "[ERROR]" << ": (OOM) " << "The runtime environment is out of memory. Please limit your program to 256 bytes." << endl;
+				++numErrors;
+				return;
+			}
+			runtime_environment[stopPointer] = str.at(i-1); // set the character in memory
+			--stopPointer; // decrement stop pointer
+		}
+		// add string to the new map with memory address of string
+		newMap.emplace(str, stopPointer+1);
+	}
+	// update stringsMap
+	stringsMap = newMap;
 }
 
 // function to print the runtime environment out
