@@ -371,7 +371,6 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 			cpPP();
 			runtime_environment[codePointer] = 1; 
 			cpPP();
-			cout << "got here" << endl;
 		}
 		else // string literal
 		{
@@ -552,6 +551,7 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 			runtime_environment[codePointer] = codePointer - 2; // get stored value and put into x
 			cpPP();
 			runtime_environment[codePointer] = 0;
+			cpPP();
 		}
 		else // string literal 
 		{
@@ -572,10 +572,10 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 		cpPP();
 		runtime_environment[codePointer] = 0;
 		cpPP();
-		// branch 3 bytes if not equal
+		// branch 2 bytes if not equal
 		runtime_environment[codePointer] = 208; //d0
 		cpPP();
-		runtime_environment[codePointer] = 3; // 3 bytes
+		runtime_environment[codePointer] = 2; // 2 bytes
 		cpPP();
 		if(name == "<!=>")
 		{
