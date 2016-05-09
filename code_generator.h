@@ -110,7 +110,7 @@ void Code_Generator::replaceTemps()
 }
 
 // function to increment the code pointer and report out of memory errors
-void Code_Generator::cpPP()
+void Code_Generator::cpPP() // "code pointer plus plus"
 {
 	++codePointer; // increment the code pointer
 	if(codePointer > stopPointer) // if we ran out of memory
@@ -160,9 +160,58 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 	}
 	else if(name == "<AssignmentStatement>")
 	{
-		if(type == "int")
+		if(children.at(1).name.length() == 3 && children.at(1).name.at(1) > 96 && name.at(1) < 123) // if the assignment is one variable to another
 		{
-			
+			AST_Node& var1 = children.at(0); // the variable to assign
+			AST_Node& var2 = children.at(1); // the variable assigning
+			// load variable to give value
+			runtime_environment[codePointer] = 173; // ad
+			cpPP();
+			runtime_environment[codePointer] = 0;
+			addTemp(var2, codePointer); // temp var
+			cpPP();
+			runtime_environment[codePointer] = 0;
+			cpPP();
+			// store variable to get value
+			runtime_environment[codePointer] = 141; // 8d
+			cpPP();
+			runtime_environment[codePointer] = 0;
+			addTemp(var1, codePointer); // temp var
+			cpPP();
+			runtime_environment[codePointer] = 0;
+			cpPP();
+		}
+		else if(type == "int")
+		{
+			AST_Node& var = children.at(0); // the variable
+			if(children.at(1).name.length() == 3 && children.at(1).name.at(1) > 47 && name.at(1) < 58) // if the assignment is simply a digit
+			{
+				int num = children.at(1).name.at(1) - 48;
+				runtime_environment[codePointer] = 169; // a9
+				cpPP();
+				runtime_environment[codePointer] = num;
+				cpPP();
+				runtime_environment[codePointer] = 141; // 8d
+				cpPP();
+				runtime_environment[codePointer] = 0;
+				addTemp(var, codePointer); // temp var
+				cpPP();
+				runtime_environment[codePointer] = 0;
+				cpPP();
+			}
+			else // assignment had a <+> in it
+			{
+				generateCode(children.at(1), stringsMap); // recurse on <+>
+				// after recursing, the accumulator should contain the correct number to assign
+				// so all that needs to be done is to store the accumulator in memory
+				runtime_environment[codePointer] = 141; // 8d
+				cpPP();
+				runtime_environment[codePointer] = 0;
+				addTemp(var, codePointer); // temp var
+				cpPP();
+				runtime_environment[codePointer] = 0;
+				cpPP();
+			}
 		}
 		else if(type == "string")
 		{
@@ -196,6 +245,7 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 	{
 		if(children.at(1).name.at(1) > 96 && children.at(1).name.at(1) < 123) // seocnd child is id and not <+>
 		{
+			value += children.at(0).name.at(1) - 48; // add left digit
 			if(value > 255) // passed max int value
 			{
 				cout << "[WARN]Line " << ast.lineNum << ": " << "The maximum value of an integer is 255. Compilation will continue with the max." << endl;
@@ -220,6 +270,7 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 		else if(children.at(1).name.at(1) > 47 && children.at(1).name.at(1) < 58) // seocnd child is a digit and not <+>
 		{
 			int num = children.at(1).name.at(1) - 48;
+			num += children.at(0).name.at(1) - 48; // add left digit
 			value += num; // add to the value
 			if(value > 255) // passed max int value
 			{
@@ -234,13 +285,20 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 			runtime_environment[codePointer] = value;
 			cpPP();
 		}
+		else // second child is <+>
+		{
+			value += children.at(0).name.at(1) - 48; // add left digit
+			generateCode(children.at(1), stringsMap); // recurse on <+>
+		}
 	}
+	/*
 	else if(name.length() == 3 && name.at(1) > 47 && name.at(1) < 58) // [0-9]
 	{
 		int num = name.at(1) - 48;
 		value += num; // add to the value
 		return;
 	}
+	*/
 	
 	
 }
