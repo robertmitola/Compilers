@@ -277,7 +277,28 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 	}
 	else if(name == "<PrintStatement>")
 	{
-		
+		AST_Node& rhs = children(0);
+		if(rhs.name.length() == 3 && rhs.name.at(1) > 47 && rhs.name.at(1) < 58) // right hand digit
+		{
+			
+		}
+		else if(rhs.name.length() == 3 && rhs.name.at(1) > 96 && rhs.name.at(1) < 123) // right hand id
+		{
+			
+		}
+		else if(rhs.name == "[true]" || rhs.name == "[false]")
+		{
+			
+		}
+		else if(rhs.name == "<+>")
+		{
+			
+		}
+		else // string literal
+		{
+			string key = rhs.name.substr(2, left.name.length()-4);
+			int addressOfString = stringsMap.at(key); // get the memory address of the string
+		}
 	}
 	else if(name == "<==>" || name == "<!=>")
 	{
