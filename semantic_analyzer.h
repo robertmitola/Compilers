@@ -377,7 +377,7 @@ void Semantic_Analyzer::printAST(AST_Node n, int level)
 {
 	for(int i=0; i < level; ++i) // for the node's depth
 		cout << "-"; // print out a corresponding number of dashes
-	cout << n.name << " (" << n.scope << "-" << n.subscope << ")" <<
+	cout << n.name << " (" << n.type << ")" <<
 	// "(Line No. " << n.lineNum << ")" << // print node's line number 
 	// "(Type " << n.type << ")" << // print node's name
 	endl;
