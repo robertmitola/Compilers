@@ -193,6 +193,7 @@ int main(int argc, char *argv[])
 		cout << "Code Generation complete!" << endl;
 		
 		////////// PRINT HEX CODE //////////////////////////////////////
+		// cout << codeGen.hex << endl;
 		stringstream outFileName;
 		outFileName << fileName << "_" << progNum << ".txt";
 		ofstream outFile(outFileName.str());

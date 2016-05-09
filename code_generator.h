@@ -77,8 +77,8 @@ Code_Generator::Code_Generator(AST_Node& AST, unordered_map<string, int>& string
 		cout << "___|__________________________________________________________________" << endl;
 	}
 	
-	cout << "code pointer: " << codePointer << endl;
-	cout << "stop pointer: " << stopPointer << endl;
+	// push the code to a string for outputting to a text file
+	create6502aCode();
 }
 
 // function to add a temporary variable to the temporary variable table
@@ -923,7 +923,7 @@ void Code_Generator::create6502aCode()
 				hexDigit2 = 55 + hex2; // capital letters in ASCII
 			else
 				hexDigit2 = 48 + hex2; // numbers in ASCII
-			hexStream << hexDigit1 << " " << hexDigit2 << " ";
+			hexStream << hexDigit1 << hexDigit2 << " ";
 		}
 	}
 	hex = hexStream.str();
