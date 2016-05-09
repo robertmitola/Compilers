@@ -767,7 +767,7 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 			// branch n bytes if false
 			runtime_environment[codePointer] = 208; // d0
 			cpPP();
-			runtime_environment[codePointer] = 1; // n starts at 1
+			runtime_environment[codePointer] = -1; // n starts at -1
 			jumps.push_back(codePointer); // add this memory address to jump modifying queue
 			cpPP();
 			// evaluate the <block>
@@ -785,6 +785,7 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 			runtime_environment[codePointer] = saved0Val; // this memory definitely contains a 0
 			cpPP();
 			runtime_environment[codePointer] = 0;
+			cpPP();
 			// loop - branch all the way to beginning of loop
 			runtime_environment[codePointer] = 208; // d0
 			cpPP();
@@ -901,52 +902,56 @@ void Code_Generator::printRuntimeEnvironment()
 // function to trace the creation of hex value
 void Code_Generator::hexTrace()
 {
+	cout <<
+			"______________________________________________________________________" << endl <<
+			setw(26) << left << "" << "6502a INSTRUCTIONS" << setw(26) << right << "" << endl <<
+			"______________________________________________________________________" << endl;
 	for(int i = 0; i < 256; ++i)
 	{
 		int op = runtime_environment[i];
 		switch(op)
 		{
 			case 169: // A9
-				cout << "Load accumulator with constant " << runtime_environment[++i] << endl;
+				cout << "- Load accumulator with constant " << runtime_environment[++i] << endl;
 				break;
 			case 173: // AD
-				cout << "Load accumulator with memory @ " << runtime_environment[++i] << endl;
+				cout << "- Load accumulator with memory @ " << runtime_environment[++i] << endl;
 				++i;
 				break;
 			case 141: // 8D
-				cout << "Store accumulator in memory @ " << runtime_environment[++i] << endl;
+				cout << "- Store accumulator in memory @ " << runtime_environment[++i] << endl;
 				++i;
 				break;
 			case 109: // 6D
-				cout << "Add with carry the value in memory @ " << runtime_environment[++i] << endl;
+				cout << "- Add with carry the value in memory @ " << runtime_environment[++i] << endl;
 				++i;
 				break;
 			case 162: // A2
-				cout << "Load the X register with constant " << runtime_environment[++i] << endl;
+				cout << "- Load the X register with constant " << runtime_environment[++i] << endl;
 				break;
 			case 174: // AE
-				cout << "Load the X register with memory @ " << runtime_environment[++i] << endl;
+				cout << "- Load the X register with memory @ " << runtime_environment[++i] << endl;
 				++i;
 				break;
 			case 160: // A0
-				cout << "Load the Y register with constant " << runtime_environment[++i] << endl;
+				cout << "- Load the Y register with constant " << runtime_environment[++i] << endl;
 				break;
 			case 172: // AC
-				cout << "Load the Y register with memory @ " << runtime_environment[++i] << endl;
+				cout << "- Load the Y register with memory @ " << runtime_environment[++i] << endl;
 				++i;
 				break;
 			case 0: // 00
 				// cout << "Break" << endl;
 				break;
 			case 236: // EC
-				cout << "Set Z = 1 if X = memory @ " << runtime_environment[++i] << endl;
+				cout << "- Set Z = 1 if X = memory @ " << runtime_environment[++i] << endl;
 				++i;
 				break;
 			case 208: // D0
-				cout << "Branch [" << runtime_environment[++i] << "] bytes if Z = 0" << endl; 
+				cout << "- Branch [" << runtime_environment[++i] << "] bytes if Z = 0" << endl; 
 				break;
 			case 255: // FF
-				cout << "Print" << endl;
+				cout << "- Print" << endl;
 				break;
 			default:
 				// cout << "ERROR at location " << i << "!" << endl;

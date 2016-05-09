@@ -207,5 +207,6 @@ int main(int argc, char *argv[])
 		programs.pop(); // on to the next program
 	}
 	cout << "End of compilation." << endl;
+	cout << "______________________________________________________________________" << endl;
 	return 0; // exit successful
 }
