@@ -57,23 +57,18 @@ Code_Generator::Code_Generator(AST_Node& AST, unordered_map<string, int>& string
 	for(int i = 0; i < 256; ++i)
 		runtime_environment[i] = 0;
 	
-	cout << 1 << endl;
 	// add all string literals to the runtime environment
 	addStrings(stringsMap);
 	
-	cout << 2 << endl;
 	// add the necessary temporary variables
 	addTemps(AST);
 	
-	cout << 3 << endl;
 	// generate the code
 	generateCode(AST, stringsMap);
 	
-	cout << 4 << endl;
 	// replace temporary variable with their memory addresses
 	replaceTemps();
 	
-	cout << 5 << endl;
 	// verbose mode reporting
 	if(verbose)
 	{
@@ -85,6 +80,9 @@ Code_Generator::Code_Generator(AST_Node& AST, unordered_map<string, int>& string
 		printRuntimeEnvironment();
 		cout << "___|__________________________________________________________________" << endl;
 	}
+	
+	cout << "code pointer: " << codePointer << endl;
+	cout << "stop pointer: " << stopPointer << endl;
 }
 
 // function to add a temporary variable to the temporary variable table
@@ -259,7 +257,21 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 			else // right hand side of expression is <==> or <!=>
 			{
 				generateCode(children.at(1), stringsMap); // recurse on <==> or <!=>
-				
+				// final value of a nested boolean expression will be stored in the last memory address
+				// load accumulator with the memory at this address
+				runtime_environment[codePointer] = 173; // ad
+				cpPP();
+				runtime_environment[codePointer] = codePointer-2; // address of last boolean push to memory
+				cpPP();
+				runtime_environment[codePointer] = 0;
+				// store variable
+				runtime_environment[codePointer] = 141; // 8d
+				cpPP();
+				runtime_environment[codePointer] = 0;
+				addTemp(var, codePointer); // temp var
+				cpPP();
+				runtime_environment[codePointer] = 0;
+				cpPP();
 			}
 		}
 	}
