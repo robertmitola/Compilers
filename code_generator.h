@@ -280,6 +280,7 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 		if(left.name == "<==>" || left.name == "<!=>")
 		{
 			generateCode(left, stringsMap); // recurse on <==> or <!=>
+			leftBool = codePointer-1; // address of last boolean push to memory
 		}
 		else if(left.name.length() == 3 && left.name.at(1) > 47 && left.name.at(1) < 58) // left hand digit
 		{
@@ -374,11 +375,17 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 		if(right.name == "<==>" || right.name == "<!=>")
 		{
 			generateCode(right, stringsMap); // recurse on <==> or <!=>
-			// rob add something here
+			// load x from memory
+			runtime_environment[codePointer] = 174; // ae
+			cpPP();
+			runtime_environment[codePointer] = codePointer-2; // address of last boolean push to memory
+			cpPP();
+			runtime_environment[codePointer] = 0;
+			cpPP();
 		}
 		else if(right.name.length() == 3 && right.name.at(1) > 47 && right.name.at(1) < 58) // right hand digit
 		{
-			int num = left.name.at(1) - 48;
+			int num = right.name.at(1) - 48;
 			// load x with constant
 			runtime_environment[codePointer] = 162; // a2
 			cpPP();
@@ -434,12 +441,8 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 			runtime_environment[codePointer] = addressOfString;
 			cpPP();
 		}
-		// ROB YOU LEFT OFF HERE - YOU NEED TO COMPARE LEFT AND RIGHT NOW 
-		// REMEMBER THAT LEFT HAS BEEN STORED IN MEMORY AND THAT MEMORY IS IN THE LEFTBOOL VARIABLE
-		// THE RIGHT HAND SIDE HAS THE VALUE TO COMPARE IT TO
-		// YOU'LL NEED TO USE A JUMP
-		// COMPARE
 		
+		// COMPARE SIDES
 		// compare byte in memory to x register
 		runtime_environment[codePointer] = 236; // ec
 		cpPP();
@@ -460,7 +463,6 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 			cpPP();
 			runtime_environment[codePointer] = 0;
 			cpPP();
-			// do not store the accumulator
 		}
 		else // name  == "<!=>"
 		{
@@ -474,8 +476,14 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 			cpPP();
 			runtime_environment[codePointer] = 1;
 			cpPP();
-			// do not store the accumulator
 		}
+		// store accumulator in the unused memory address that is a part of the isntruction
+		runtime_environment[codePointer] = 141; // 8d
+		cpPP();
+		runtime_environment[codePointer] = codePointer + 1;
+		cpPP();
+		runtime_environment[codePointer] = 0; // value will be stored here
+		cpPP();
 	}
 	else if(name == "<+>")
 	{
