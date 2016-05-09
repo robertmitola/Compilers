@@ -305,17 +305,13 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 			else if(rhs.type == "string") runtime_environment[codePointer] = 2;
 			cpPP();
 			// load y register with memory to print
-			if(rhs.type == "int" || rhs.type == "boolean") runtime_environment[codePointer] = 160; // a0
-			else if(rhs.type == "string") runtime_environment[codePointer] = 172; // ac
+			runtime_environment[codePointer] = 172; // ac
 			cpPP();
 			runtime_environment[codePointer] = 0; 
 			addTemp(rhs, codePointer); // temp var
 			cpPP();
-			if(rhs.type == "string")
-			{
-				runtime_environment[codePointer] = 0; 
-				cpPP();
-			}
+			runtime_environment[codePointer] = 0; 
+			cpPP();
 		}
 		else if(rhs.name == "[true]" || rhs.name == "[false]")
 		{
@@ -945,7 +941,7 @@ void Code_Generator::hexTrace()
 				cout << "Print" << endl;
 				break;
 			default:
-				cout << "ERROR at location " << i << "!" << endl;
+				// cout << "ERROR at location " << i << "!" << endl;
 		}
 	}
 }
