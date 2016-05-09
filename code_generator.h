@@ -62,6 +62,9 @@ Code_Generator::Code_Generator(AST_Node& AST, unordered_map<string, int>& string
 	
 	// generate the code
 	generateCode(AST, stringsMap);
+	// append the 00 byte to signify the EOP
+	runtime_environment[codePointer] = 0;
+	cpPP();
 	
 	// replace temporary variable with their memory addresses
 	replaceTemps();
@@ -345,7 +348,7 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 			runtime_environment[codePointer] = 1; 
 			cpPP();
 			// load y register with memory to print
-			runtime_environment[codePointer] = 160; // a0
+			runtime_environment[codePointer] = 172; // ac
 			cpPP();
 			runtime_environment[codePointer] = codePointer-4; // accumulator value should be stored there
 			cpPP();
@@ -648,6 +651,7 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 			cpPP();
 			runtime_environment[codePointer] = value;
 			cpPP();
+			value = 0; // reset value
 		}
 		else // second child is <+>
 		{
