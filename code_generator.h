@@ -280,11 +280,39 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 		AST_Node& rhs = children(0);
 		if(rhs.name.length() == 3 && rhs.name.at(1) > 47 && rhs.name.at(1) < 58) // right hand digit
 		{
-			
+			int num = left.name.at(1) - 48;
+			// load the x register with a constant representing "print value in y register"
+			runtime_environment[codePointer] = 162; // a2
+			cpPP();
+			runtime_environment[codePointer] = 1; 
+			cpPP();
+			// load y register with a constant to print
+			runtime_environment[codePointer] = 160; // a0
+			cpPP();
+			runtime_environment[codePointer] = num; 
+			cpPP();
+			// print using system call
+			runtime_environment[codePointer] = 255;
+			cpPP();
 		}
 		else if(rhs.name.length() == 3 && rhs.name.at(1) > 96 && rhs.name.at(1) < 123) // right hand id
 		{
-			
+			// load the x register with a constant representing "print value in y register"
+			runtime_environment[codePointer] = 162; // a2
+			cpPP();
+			runtime_environment[codePointer] = 1; 
+			cpPP();
+			// load y register with memory to print
+			runtime_environment[codePointer] = 160; // a0
+			cpPP();
+			runtime_environment[codePointer] = 0; 
+			addTemp(rhs, codePointer); // temp var
+			cpPP();
+			runtime_environment[codePointer] = 0; 
+			cpPP();
+			// print using system call
+			runtime_environment[codePointer] = 255;
+			cpPP();
 		}
 		else if(rhs.name == "[true]" || rhs.name == "[false]")
 		{
