@@ -57,18 +57,23 @@ Code_Generator::Code_Generator(AST_Node& AST, unordered_map<string, int>& string
 	for(int i = 0; i < 256; ++i)
 		runtime_environment[i] = 0;
 	
+	cout << 1 << endl;
 	// add all string literals to the runtime environment
 	addStrings(stringsMap);
 	
+	cout << 2 << endl;
 	// add the necessary temporary variables
 	addTemps(AST);
 	
+	cout << 3 << endl;
 	// generate the code
 	generateCode(AST, stringsMap);
 	
+	cout << 4 << endl;
 	// replace temporary variable with their memory addresses
 	replaceTemps();
 	
+	cout << 5 << endl;
 	// verbose mode reporting
 	if(verbose)
 	{
@@ -271,6 +276,7 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 		AST_Node& right = children.at(1); // right hand side
 		
 		// LEFT HAND SIDE
+		
 		if(left.name == "<==>" || left.name == "<!=>")
 			generateCode(left, stringsMap); // recurse on <==> or <!=>
 		else if(left.name.length() == 3 && left.name.at(1) > 47 && left.name.at(1) < 58) // left hand digit
@@ -345,7 +351,7 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 		}
 		else // string literal 
 		{
-			string key = left.name.substr(2, children.at(1).name.length()-4);
+			string key = left.name.substr(2, left.name.length()-4);
 			int addressOfString = stringsMap.at(key); // get the memory address of the string
 			// load accumulator
 			runtime_environment[codePointer] = 169; // a9
