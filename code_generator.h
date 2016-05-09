@@ -278,7 +278,9 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 		// LEFT HAND SIDE
 		
 		if(left.name == "<==>" || left.name == "<!=>")
+		{
 			generateCode(left, stringsMap); // recurse on <==> or <!=>
+		}
 		else if(left.name.length() == 3 && left.name.at(1) > 47 && left.name.at(1) < 58) // left hand digit
 		{
 			int num = left.name.at(1) - 48;
@@ -370,7 +372,10 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 		
 		// RIGHT HAND SIDE
 		if(right.name == "<==>" || right.name == "<!=>")
+		{
 			generateCode(right, stringsMap); // recurse on <==> or <!=>
+			// rob add something here
+		}
 		else if(right.name.length() == 3 && right.name.at(1) > 47 && right.name.at(1) < 58) // right hand digit
 		{
 			int num = left.name.at(1) - 48;
@@ -433,6 +438,44 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 		// REMEMBER THAT LEFT HAS BEEN STORED IN MEMORY AND THAT MEMORY IS IN THE LEFTBOOL VARIABLE
 		// THE RIGHT HAND SIDE HAS THE VALUE TO COMPARE IT TO
 		// YOU'LL NEED TO USE A JUMP
+		// COMPARE
+		
+		// compare byte in memory to x register
+		runtime_environment[codePointer] = 236; // ec
+		cpPP();
+		runtime_environment[codePointer] = leftBool; // memory address of left
+		cpPP();
+		// branch 3 bytes if not equal
+		runtime_environment[codePointer] = 208; //d0
+		cpPP();
+		if(name == "<==>")
+		{
+			// true (z flag is 1) - load accumulator with contstant 1
+			runtime_environment[codePointer] = 169; // a9
+			cpPP();
+			runtime_environment[codePointer] = 1;
+			cpPP();
+			// false (z flag is 0) - load accumulator with constant 0
+			runtime_environment[codePointer] = 169; // a9
+			cpPP();
+			runtime_environment[codePointer] = 0;
+			cpPP();
+			// do not store the accumulator
+		}
+		else // name  == "<!=>"
+		{
+			// true (z flag is 1) - load accumulator with contstant 0
+			runtime_environment[codePointer] = 169; // a9
+			cpPP();
+			runtime_environment[codePointer] = 0;
+			cpPP();
+			// false (z flag is 0) - load accumulator with constant 1
+			runtime_environment[codePointer] = 169; // a9
+			cpPP();
+			runtime_environment[codePointer] = 1;
+			cpPP();
+			// do not store the accumulator
+		}
 	}
 	else if(name == "<+>")
 	{
