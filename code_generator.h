@@ -110,6 +110,11 @@ void Code_Generator::replaceTemps()
 void Code_Generator::cpPP() // "code pointer plus plus"
 {
 	++codePointer; // increment the code pointer
+	// increment all jump values relevant
+	for (vector<int>::iterator it = jumps.begin() ; it != jumps.end(); ++it)
+	{
+		runtime_environment[*it] = runtime_environment[*it] + 1;
+	}
 	if(codePointer > stopPointer) // if we ran out of memory
 	{
 		codePointer = stopPointer; // prevent trying to access unreachable memory
@@ -699,6 +704,10 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 		{
 			cout << "[WARN]Line " << conditional.lineNum << ": " << "This language has no method of breaking from an iteration that loops on [true]." << endl;
 			++numWarn;
+		}
+		else // <==> or <!=>
+		{
+			// rob here
 		}
 	}
 	/*
