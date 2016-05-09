@@ -291,16 +291,14 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 			cpPP();
 			runtime_environment[codePointer] = num; 
 			cpPP();
-			// print using system call
-			runtime_environment[codePointer] = 255;
-			cpPP();
 		}
 		else if(rhs.name.length() == 3 && rhs.name.at(1) > 96 && rhs.name.at(1) < 123) // right hand id
 		{
-			// load the x register with a constant representing "print value in y register"
+			// load the x register with correct constant for printing
 			runtime_environment[codePointer] = 162; // a2
 			cpPP();
-			runtime_environment[codePointer] = 1; 
+			if(rhs.type == "int" || rhs.type == "boolean") runtime_environment[codePointer] = 1; 
+			else if(rhs.type == "string") runtime_environment[codePointer] = 2;
 			cpPP();
 			// load y register with memory to print
 			runtime_environment[codePointer] = 160; // a0
@@ -310,23 +308,69 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 			cpPP();
 			runtime_environment[codePointer] = 0; 
 			cpPP();
-			// print using system call
-			runtime_environment[codePointer] = 255;
-			cpPP();
 		}
 		else if(rhs.name == "[true]" || rhs.name == "[false]")
 		{
-			
+			string key = rhs.name.substr(1, left.name.length()-2); // true / false
+			int addressOfString = stringsMap.at(key); // get the memory address of the string
+			// load the x register with a constant representing "print string at address in y register"
+			runtime_environment[codePointer] = 162; // a2
+			cpPP();
+			runtime_environment[codePointer] = 2; 
+			cpPP();
+			// load y register with memory address of the string as a constant
+			runtime_environment[codePointer] = 160; // a0
+			cpPP();
+			runtime_environment[codePointer] = addressOfString; 
+			cpPP();
 		}
 		else if(rhs.name == "<+>")
 		{
+			generateCode(rhs, stringsMap); // recurse on <+>
+			// after recursing, the accumulator should contain the correct number to assign
+			// so all that needs to be done is to print the accumulator in memory
+			runtime_environment[codePointer] = 141; // 8d
+			cpPP();
+			runtime_environment[codePointer] = codePointer+1; // store accumulator value at next address
+			cpPP();
+			runtime_environment[codePointer] = 0; // accumulator value will be stored here
+			cpPP();
+			// load the x register with a constant representing "print value in y register"
+			runtime_environment[codePointer] = 162; // a2
+			cpPP();
+			runtime_environment[codePointer] = 1; 
+			cpPP();
+			// load y register with memory to print
+			runtime_environment[codePointer] = 160; // a0
+			cpPP();
+			runtime_environment[codePointer] = codePointer-4; // accumulator value should be stored there
+			cpPP();
+			runtime_environment[codePointer] = 0; 
+			cpPP();
+		}
+		else if(rhs.name == "<==>" || rhs.name == "<!=>")
+		{
+			generateCode(rhs, stringsMap); // recurse on <==> or <!=>
 			
 		}
 		else // string literal
 		{
 			string key = rhs.name.substr(2, left.name.length()-4);
 			int addressOfString = stringsMap.at(key); // get the memory address of the string
+			// load the x register with a constant representing "print string at address in y register"
+			runtime_environment[codePointer] = 162; // a2
+			cpPP();
+			runtime_environment[codePointer] = 2; 
+			cpPP();
+			// load y register with memory address of the string as a constant
+			runtime_environment[codePointer] = 160; // a0
+			cpPP();
+			runtime_environment[codePointer] = addressOfString; 
+			cpPP();
 		}
+		// print using system call
+		runtime_environment[codePointer] = 255;
+		cpPP();
 	}
 	else if(name == "<==>" || name == "<!=>")
 	{
