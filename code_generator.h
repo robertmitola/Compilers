@@ -693,8 +693,6 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 	{
 		AST_Node& conditional = children.at(0);
 		AST_Node& then = children.at(1);
-		int toBranch = 1;
-		int loopBranch = 256;
 		if(conditional.name == "[false]")
 		{
 			cout << "[WARN]Line " << conditional.lineNum << ": " << "This loop will never be executed." << endl;
@@ -704,10 +702,81 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 		{
 			cout << "[WARN]Line " << conditional.lineNum << ": " << "This language has no method of breaking from an iteration that loops on [true]." << endl;
 			++numWarn;
+			int savedAddress = codePointer; // save memory address to loop
+			generateCode(then, stringsMap);
+			// load accumulator with a 0
+			runtime_environment[codePointer] = 169; // a9
+			cpPP();
+			runtime_environment[codePointer] = 0;
+			cpPP();
+			// store accumulator in unused memory address of instruction
+			runtime_environment[codePointer] = 141;
+			cpPP();
+			runtime_environment[codePointer] = codePointer+1;
+			cpPP();
+			runtime_environment[codePointer] = 0; // accumulator will be stored here
+			cpPP();
+			// load the x register with a constant representing true
+			runtime_environment[codePointer] = 162; // a2
+			cpPP();
+			runtime_environment[codePointer] = 1; // true
+			cpPP();
+			// compare x with 0
+			runtime_environment[codePointer] = 236; // ec
+			cpPP();
+			runtime_environment[codePointer] = codePointer-4;
+			cpPP();
+			runtime_environment[codePointer] = 0;
+			cpPP();
+			// branch all the way around
+			runtime_environment[codePointer] = 208; // d0
+			cpPP();
+			runtime_environment[codePointer] = 256 - (codePointer-savedAddress);
+			cpPP();
 		}
 		else // <==> or <!=>
 		{
-			// rob here
+			generateCode(conditional, stringsMap);
+			// final value of a nested boolean expression will be stored in the last memory address
+			// load the x register with a constant representing true
+			runtime_environment[codePointer] = 162; // a2
+			cpPP();
+			runtime_environment[codePointer] = 1; // true
+			cpPP();
+			// compare x register with memory holding result of boolean expression
+			runtime_environment[codePointer] = 236; // ec
+			cpPP();
+			runtime_environment[codePointer] = codePointer-4;
+			cpPP();
+			runtime_environment[codePointer] = 0;
+			int saved0Val = codePointer;
+			cpPP();
+			// branch n bytes if false
+			runtime_environment[codePointer] = 208; // d0
+			cpPP();
+			runtime_environment[codePointer] = 1; // n starts at 1
+			jumps.push_back(codePointer); // add this memory address to jump modifying queue
+			cpPP();
+			// evaluate the <block>
+			generateCode(then, stringsMap);
+			int loopBranch = 256 - runtime_environment[jumps.back()]; // how much to loop around
+			jumps.pop_back(); // remove the jump address from modifying queue
+			// load x register with a 1
+			runtime_environment[codePointer] = 162; // a2
+			cpPP();
+			runtime_environment[codePointer] = 1;
+			cpPP();
+			// compare x register with memory holding 0 so loop around always happens
+			runtime_environment[codePointer] = 236; // ec
+			cpPP();
+			runtime_environment[codePointer] = saved0Val; // this memory definitely contains a 0
+			cpPP();
+			runtime_environment[codePointer] = 0;
+			// loop - branch all the way to beginning of loop
+			runtime_environment[codePointer] = 208; // d0
+			cpPP();
+			runtime_environment[codePointer] = loopBranch; // loop around
+			cpPP();
 		}
 	}
 	/*
