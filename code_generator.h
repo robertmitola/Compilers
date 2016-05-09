@@ -365,6 +365,7 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 			runtime_environment[codePointer] = codePointer-2; // address of last boolean push to memory
 			cpPP();
 			runtime_environment[codePointer] = 0;
+			cpPP();
 			// load x register with a constant representing "print value in y register"
 			runtime_environment[codePointer] = 162; // a2
 			cpPP();
@@ -570,12 +571,13 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 		runtime_environment[codePointer] = leftBool; // memory address of left
 		cpPP();
 		runtime_environment[codePointer] = 0;
+		cpPP();
 		// branch 3 bytes if not equal
 		runtime_environment[codePointer] = 208; //d0
 		cpPP();
 		runtime_environment[codePointer] = 3; // 3 bytes
 		cpPP();
-		if(name == "<==>")
+		if(name == "<!=>")
 		{
 			// true (z flag is 1) - load accumulator with contstant 1
 			runtime_environment[codePointer] = 169; // a9
@@ -588,7 +590,7 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 			runtime_environment[codePointer] = 0;
 			cpPP();
 		}
-		else // name  == "<!=>"
+		else // name  == "<==>"
 		{
 			// true (z flag is 1) - load accumulator with contstant 0
 			runtime_environment[codePointer] = 169; // a9
