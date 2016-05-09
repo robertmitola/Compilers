@@ -694,7 +694,7 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 			// branch n bytes if false
 			runtime_environment[codePointer] = 208; // d0
 			cpPP();
-			runtime_environment[codePointer] = 0; // n starts at 0
+			runtime_environment[codePointer] = -1; // n starts at -1 so its own call to cpPP() isn't counted
 			jumps.push_back(codePointer); // add this memory address to jump modifying queue
 			cpPP();
 			// evaluate the <block>
