@@ -33,6 +33,7 @@ class Code_Generator
 		int codePointer; // points to where code goes in the runtime environment
 		int stopPointer; // points to where code should stop in the runtime environment
 		int value; // value for int expressions
+		int leftBool; // left hand stored bool compare value
 		unordered_map<string, Temp_Var> tempTable; // temporary variables table
 		void printRuntimeEnvironment(); // prints the runtime environment out
 		void addStrings(unordered_map<string, int>&); // adds string literals to runtime environment
@@ -160,7 +161,7 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 	}
 	else if(name == "<AssignmentStatement>")
 	{
-		if(children.at(1).name.length() == 3 && children.at(1).name.at(1) > 96 && name.at(1) < 123) // if the assignment is one variable to another
+		if(children.at(1).name.length() == 3 && children.at(1).name.at(1) > 96 && children.at(1).name.at(1) < 123) // if the assignment is one variable to another
 		{
 			AST_Node& var1 = children.at(0); // the variable to assign
 			AST_Node& var2 = children.at(1); // the variable assigning
@@ -184,7 +185,7 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 		else if(type == "int")
 		{
 			AST_Node& var = children.at(0); // the variable
-			if(children.at(1).name.length() == 3 && children.at(1).name.at(1) > 47 && name.at(1) < 58) // if the assignment is simply a digit
+			if(children.at(1).name.length() == 3 && children.at(1).name.at(1) > 47 && children.at(1).name.at(1) < 58) // if the assignment is simply a digit
 			{
 				int num = children.at(1).name.at(1) - 48;
 				runtime_environment[codePointer] = 169; // a9
@@ -232,15 +233,133 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 		}
 		else if(type == "boolean")
 		{
-			
+			AST_Node& var = children.at(0); // the variable
+			if(children.at(1).name == "[true]" || children.at(1).name == "[false]") // simply asssign true / false
+			{
+				int boolean = 0;
+				if(children.at(1).name == "[true]") boolean = 1; // set boolean to correct memory value
+				// load accumulator with constant
+				runtime_environment[codePointer] = 169; // a9
+				cpPP();
+				runtime_environment[codePointer] = boolean;
+				cpPP();
+				// store variable
+				runtime_environment[codePointer] = 141; // 8d
+				cpPP();
+				runtime_environment[codePointer] = 0;
+				addTemp(var, codePointer); // temp var
+				cpPP();
+				runtime_environment[codePointer] = 0;
+				cpPP();
+			}
+			else // right hand side of expression is <==> or <!=>
+			{
+				generateCode(children.at(1), stringsMap); // recurse on <==> or <!=>
+				
+			}
 		}
 	}
 	else if(name == "<PrintStatement>")
 	{
-		runtime_environment[codePointer] = 0;
-		cpPP();
+		
 	}
-	
+	else if(name == "<==>" || name == "<!=>")
+	{
+		bool equals = false;
+		if(name == "<==>") equals = true;
+		AST_Node& left = children.at(0); // left hand side
+		AST_Node& right = children.at(1); // right hand side
+		if(left.name == "<==>" || left.name == "<!=>")
+			generateCode(children.at(0), stringsMap); // recurse on <==> or <!=>
+		else if(left.name.length() == 3 && left.name.at(1) > 47 && left.name.at(1) < 58) // left hand digit
+		{
+			int num = left.name.at(1) - 48;
+			// load accumulator with constant
+			runtime_environment[codePointer] = 169; // a9
+			cpPP();
+			runtime_environment[codePointer] = num;
+			cpPP();
+			runtime_environment[codePointer] = 0;
+			cpPP();
+			// store accumulator in the unused memory address that is a part of the isntruction
+			runtime_environment[codePointer] = 141; // 8d
+			cpPP();
+			runtime_environment[codePointer] = codePointer + 1;
+			cpPP();
+			runtime_environment[codePointer] = 0; // value will be stored here
+			leftBool = codePointer; // this is where to eventually get the left variable
+			cpPP();
+		}
+		else if(left.name.length() == 3 && left.name.at(1) > 96 && left.name.at(1) < 123) // left hand id
+		{
+			// load accumulator from memory associated with the variabe
+			runtime_environment[codePointer] = 141; // ad
+			cpPP();
+			runtime_environment[codePointer] = 0;
+			addTemp(left, codePointer); // temp var
+			cpPP();
+			runtime_environment[codePointer] = 0;
+			cpPP();
+			// store accumulator in the unused memory address that is a part of the isntruction
+			runtime_environment[codePointer] = 141; // 8d
+			cpPP();
+			runtime_environment[codePointer] = codePointer + 1;
+			cpPP();
+			runtime_environment[codePointer] = 0; // value will be stored here
+			leftBool = codePointer; // this is where to eventually get the left variable
+			cpPP();
+		}
+		else if(left.name == "[true]" || left.name == "[false]")
+		{
+			int boolean = 0;
+			if(left.name == "[true]") boolean = 1;
+			// load accumulator with constant
+			runtime_environment[codePointer] = 169; // a9
+			cpPP();
+			runtime_environment[codePointer] = boolean; // true or false | 1 or 0
+			cpPP();
+			// store accumulator in the unused memory address that is a part of the isntruction
+			runtime_environment[codePointer] = 141; // 8d
+			cpPP();
+			runtime_environment[codePointer] = codePointer + 1;
+			cpPP();
+			runtime_environment[codePointer] = 0; // value will be stored here
+			leftBool = codePointer; // this is where to eventually get the left variable
+			cpPP();
+		}
+		else if(left.name == "<+>")
+		{
+			generateCode(left, stringsMap); // recurse on <+>
+			// after recursing, the accumulator should contain the correct number to compare
+			// so all that needs to be done is to store the accumulator in memory
+			// store accumulator in the unused memory address that is a part of the isntruction
+			runtime_environment[codePointer] = 141; // 8d
+			cpPP();
+			runtime_environment[codePointer] = codePointer + 1;
+			cpPP();
+			runtime_environment[codePointer] = 0; // value will be stored here
+			leftBool = codePointer; // this is where to eventually get the left variable
+			cpPP();
+		}
+		else // string literal 
+		{
+			string key = left.name.substr(2, children.at(1).name.length()-4);
+			int addressOfString = stringsMap.at(key); // get the memory address of the string
+			// load accumulator
+			runtime_environment[codePointer] = 169; // a9
+			cpPP();
+			runtime_environment[codePointer] = addressOfString;
+			cpPP();
+			// store accumulator in the unused memory address that is a part of the isntruction
+			runtime_environment[codePointer] = 141; // 8d
+			cpPP();
+			runtime_environment[codePointer] = codePointer + 1;
+			cpPP();
+			runtime_environment[codePointer] = 0; // value will be stored here
+			leftBool = codePointer; // this is where to eventually get the left variable
+			cpPP();
+		}
+	}
 	else if(name == "<+>")
 	{
 		if(children.at(1).name.at(1) > 96 && children.at(1).name.at(1) < 123) // seocnd child is id and not <+>
