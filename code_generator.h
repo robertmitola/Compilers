@@ -20,6 +20,7 @@ class Code_Generator
 		int numErrors; // number of errors
 		int numWarn; // number of warnings
 		int runtime_environment [256]; // the runtime environment array
+		string hex;
 	// private class access
 	private:
 		bool verbose; // verbose output
@@ -35,6 +36,7 @@ class Code_Generator
 		void cpPP(); // increments code pointer
 		void addTemp(AST_Node&, int); // adds a temporary address to the temp table
 		void replaceTemps(); // replaces temporary variables with memory addresses
+		void create6502aCode(); // function to turn the code into a string
 };
 
 // constructor
@@ -883,4 +885,46 @@ void Code_Generator::printRuntimeEnvironment()
 		}
 		cout << endl;
 	}
+}
+
+// function to conver the code into a string
+void Code_Generator::create6502aCode()
+{
+	stringstream hexStream;
+	for(int i = 0; i < 32; ++i)
+	{
+		int hex = i*8; // points to corrent row
+		int hex1 = hex / 16; // the first of the 2 hex digits that make up a byte
+		int hex2 = hex % 16; // the second of the 2 hex digits that make up a byte
+		char hexDigit1 = 0;
+		char hexDigit2 = 0;
+		if(hex1 > 9)
+			hexDigit1 = 55 + hex1; // capital letters in ASCII
+		else
+			hexDigit1 = 48 + hex1; // numbers in ASCII
+		if(hex2 > 9)
+			hexDigit2 = 55 + hex2; // capital letters in ASCII
+		else
+			hexDigit2 = 48 + hex2; // numbers in ASCII
+		cout << setw(2) << right << hexDigit1 << hexDigit2 << "| ";
+		for(int j = 0; j < 8; ++j)
+		{
+			int pointer = hex + j; // points to current element of array
+			int element = runtime_environment[pointer];
+			int hex1 = element / 16; // the first of the 2 hex digits that make up a byte
+			int hex2 = element % 16; // the second of the 2 hex digits that make up a byte
+			char hexDigit1 = 0;
+			char hexDigit2 = 0;
+			if(hex1 > 9)
+				hexDigit1 = 55 + hex1; // capital letters in ASCII
+			else
+				hexDigit1 = 48 + hex1; // numbers in ASCII
+			if(hex2 > 9)
+				hexDigit2 = 55 + hex2; // capital letters in ASCII
+			else
+				hexDigit2 = 48 + hex2; // numbers in ASCII
+			hexStream << hexDigit1 << " " << hexDigit2 << " ";
+		}
+	}
+	hex = hexStream.str();
 }

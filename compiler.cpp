@@ -192,6 +192,17 @@ int main(int argc, char *argv[])
 		// indicate completion of code generation
 		cout << "Code Generation complete!" << endl;
 		
+		////////// PRINT HEX CODE //////////////////////////////////////
+		stringstream outFileName;
+		outFileName << fileName << "_" << progNum << ".txt";
+		ofstream outFile(outFileName.str());
+		// turn the hex string into a const char *
+		const char * c = codeGen.hex.c_str();
+		// write to outfile
+		outFile.write(c, codeGen.hex.length()); // 768
+		// close outfile
+		outFile.close();
+		
 		programs.pop(); // on to the next program
 	}
 	cout << "End of compilation." << endl;
