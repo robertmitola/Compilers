@@ -572,17 +572,34 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 		cpPP();
 		runtime_environment[codePointer] = 0;
 		cpPP();
-		// branch 2 bytes if not equal
+		// branch 9 bytes if not equal
 		runtime_environment[codePointer] = 208; //d0
 		cpPP();
-		runtime_environment[codePointer] = 2; // 2 bytes
+		runtime_environment[codePointer] = 9; // 9 bytes
 		cpPP();
 		if(name == "<==>")
 		{
-			// true (z flag is 1) - load accumulator with contstant 1
+			// true (z flag is 1) - load accumulator with constant 1
 			runtime_environment[codePointer] = 169; // a9
 			cpPP();
 			runtime_environment[codePointer] = 1;
+			cpPP();
+			// jump past what comes next (false section)
+			//		set X register to 2, compare it to memory address
+			//		255, which is always 0, and branch
+			runtime_environment[codePointer] = 162; // a2
+			cpPP();
+			runtime_environment[codePointer] = 1;
+			cpPP();
+			runtime_environment[codePointer] = 236; // ec
+			cpPP();
+			runtime_environment[codePointer] = codePointer+1; // contains 0
+			cpPP();
+			runtime_environment[codePointer] = 0;
+			cpPP();
+			runtime_environment[codePointer] = 208; // branch
+			cpPP();
+			runtime_environment[codePointer] = 2; // 2 bytes to skip next section
 			cpPP();
 			// false (z flag is 0) - load accumulator with constant 0
 			runtime_environment[codePointer] = 169; // a9
@@ -592,10 +609,27 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 		}
 		else if(name == "<!=>")
 		{
-			// true (z flag is 1) - load accumulator with contstant 0
+			// true (z flag is 1) - load accumulator with constant 0
 			runtime_environment[codePointer] = 169; // a9
 			cpPP();
 			runtime_environment[codePointer] = 0;
+			cpPP();
+			// jump past what comes next (false section)
+			//		set X register to 2, compare it to memory address
+			//		255, which is always 0, and branch
+			runtime_environment[codePointer] = 162; // a2
+			cpPP();
+			runtime_environment[codePointer] = 1;
+			cpPP();
+			runtime_environment[codePointer] = 236; // ec
+			cpPP();
+			runtime_environment[codePointer] = codePointer+1; // contains 0
+			cpPP();
+			runtime_environment[codePointer] = 0;
+			cpPP();
+			runtime_environment[codePointer] = 208; // branch
+			cpPP();
+			runtime_environment[codePointer] = 2; // 2 bytes to skip next section
 			cpPP();
 			// false (z flag is 0) - load accumulator with constant 1
 			runtime_environment[codePointer] = 169; // a9
