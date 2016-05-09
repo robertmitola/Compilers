@@ -12,13 +12,6 @@ typedef struct Temp_Var
 	queue<int> addresses; // addresses of the temprary variables in the runtime environment
 } Temp_Var;
 
-// jump variable
-typedef struct Jump_Var
-{
-	int distance; // distance to jump
-	queue<int*> addresses; // addresses of the temporary jumps in the runtime environment
-} Jump_Var;
-
 class Code_Generator
 {
 	// public class access
@@ -34,6 +27,7 @@ class Code_Generator
 		int stopPointer; // points to where code should stop in the runtime environment
 		int value; // value for int expressions
 		unordered_map<string, Temp_Var> tempTable; // temporary variables table
+		vector<int> jumps; // alters jump values
 		void printRuntimeEnvironment(); // prints the runtime environment out
 		void addStrings(unordered_map<string, int>&); // adds string literals to runtime environment
 		void addTemps(AST_Node&); // adds temporary variables to the temp table
@@ -655,7 +649,6 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 	{
 		AST_Node& conditional = children.at(0);
 		AST_Node& then = children.at(1);
-		int toBranch = 1;
 		if(conditional.name == "[false]")
 		{
 			cout << "[WARN]Line " << conditional.lineNum << ": " << "This for statement will never be executed." << endl;
@@ -663,7 +656,32 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 		}
 		else if(conditional.name == "[true]")
 		{
-			
+			generateCode(then ,stringsMap); // we know it will evaluate so just compute the then part
+		}
+		else // <==> or <!=>
+		{
+			generateCode(conditional, stringsMap);
+			// final value of a nested boolean expression will be stored in the last memory address
+			// load the x register with a constant representing true
+			runtime_environment[codePointer] = 162; // a2
+			cpPP();
+			runtime_environment[codePointer] = 1; // true
+			cpPP();
+			// compare x register with memory holding result of boolean expression
+			runtime_environment[codePointer] = 236; // ec
+			cpPP();
+			runtime_environment[codePointer] = codePointer-4;
+			cpPP();
+			runtime_environment[codePointer] = 0;
+			// branch n bytes if false
+			runtime_environment[codePointer] = 208; // d0
+			cpPP();
+			runtime_environment[codePointer] = 1; // n starts at 1
+			jumps.push_back(codePointer); // add this memory address to jump modifying queue
+			cpPP();
+			// evaluate the <block>
+			generateCode(then, stringsMap);
+			jumps.pop_back(); // remove the jump address from modifying queue
 		}
 	}
 	else if(name == "<WhileStatement>")
@@ -672,15 +690,14 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 		AST_Node& then = children.at(1);
 		int toBranch = 1;
 		int loopBranch = 256;
-		if(conditional.name == "[true]")
-		{
-			cout << "[WARN]Line " << conditional.lineNum << ": " << "This language has no method of breaking from an iteration that loops on [true]." << endl;
-			++numWarn;
-			
-		}
-		else if(conditional.name == "[false]")
+		if(conditional.name == "[false]")
 		{
 			cout << "[WARN]Line " << conditional.lineNum << ": " << "This loop will never be executed." << endl;
+			++numWarn;
+		}
+		else if(conditional.name == "[true]")
+		{
+			cout << "[WARN]Line " << conditional.lineNum << ": " << "This language has no method of breaking from an iteration that loops on [true]." << endl;
 			++numWarn;
 		}
 	}
