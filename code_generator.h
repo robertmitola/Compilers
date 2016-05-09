@@ -942,6 +942,7 @@ void Code_Generator::hexTrace()
 				break;
 			default:
 				// cout << "ERROR at location " << i << "!" << endl;
+				break;
 		}
 	}
 }
