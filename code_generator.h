@@ -37,6 +37,7 @@ class Code_Generator
 		void addTemp(AST_Node&, int); // adds a temporary address to the temp table
 		void replaceTemps(); // replaces temporary variables with memory addresses
 		void create6502aCode(); // function to turn the code into a string
+		void hexTrace(); // for testing
 };
 
 // constructor
@@ -68,6 +69,8 @@ Code_Generator::Code_Generator(AST_Node& AST, unordered_map<string, int>& string
 	// verbose mode reporting
 	if(verbose)
 	{
+		// trace the creation of the 6502a codes
+		hexTrace();
 		// print the runtime environment
 		cout <<
 			"______________________________________________________________________" << endl <<
@@ -302,13 +305,17 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 			else if(rhs.type == "string") runtime_environment[codePointer] = 2;
 			cpPP();
 			// load y register with memory to print
-			runtime_environment[codePointer] = 160; // a0
+			if(rhs.type == "int" || rhs.type == "boolean") runtime_environment[codePointer] = 160; // a0
+			else if(rhs.type == "string") runtime_environment[codePointer] = 172; // ac
 			cpPP();
 			runtime_environment[codePointer] = 0; 
 			addTemp(rhs, codePointer); // temp var
 			cpPP();
-			runtime_environment[codePointer] = 0; 
-			cpPP();
+			if(rhs.type == "string")
+			{
+				runtime_environment[codePointer] = 0; 
+				cpPP();
+			}
 		}
 		else if(rhs.name == "[true]" || rhs.name == "[false]")
 		{
@@ -884,6 +891,62 @@ void Code_Generator::printRuntimeEnvironment()
 			cout << "[" << hexDigit1 << hexDigit2 << "] ";
 		}
 		cout << endl;
+	}
+}
+
+// function to trace the creation of hex value
+void Code_Generator::hexTrace()
+{
+	for(int i = 0; i < 256; ++i)
+	{
+		int op = runtime_environment[i];
+		switch(op)
+		{
+			case 169: // A9
+				cout << "Load accumulator with constant " << runtime_environment[++i] << endl;
+				break;
+			case 173: // AD
+				cout << "Load accumulator with memory @ " << runtime_environment[++i] << endl;
+				++i;
+				break;
+			case 141: // 8D
+				cout << "Store accumulator in memory @ " << runtime_environment[++i] << endl;
+				++i;
+				break;
+			case 109: // 6D
+				cout << "Add with carry the value in memory @ " << runtime_environment[++i] << endl;
+				++i;
+				break;
+			case 162: // A2
+				cout << "Load the X register with constant " << runtime_environment[++i] << endl;
+				break;
+			case 174: // AE
+				cout << "Load the X register with memory @ " << runtime_environment[++i] << endl;
+				++i;
+				break;
+			case 160: // A0
+				cout << "Load the Y register with constant " << runtime_environment[++i] << endl;
+				break;
+			case 172: // AC
+				cout << "Load the Y register with memory @ " << runtime_environment[++i] << endl;
+				++i;
+				break;
+			case 0: // 00
+				// cout << "Break" << endl;
+				break;
+			case 236: // EC
+				cout << "Set Z = 1 if X = memory @ " << runtime_environment[++i] << endl;
+				++i;
+				break;
+			case 208: // D0
+				cout << "Branch [" << runtime_environment[++i] << "] bytes if Z = 0" << endl; 
+				break;
+			case 255: // FF
+				cout << "Print" << endl;
+				break;
+			default:
+				cout << "ERROR at location " << i << "!" << endl;
+		}
 	}
 }
 
