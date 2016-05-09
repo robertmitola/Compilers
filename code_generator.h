@@ -651,6 +651,39 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 			generateCode(children.at(1), stringsMap); // recurse on <+>
 		}
 	}
+	else if(name == "<IfStatement>")
+	{
+		AST_Node& conditional = children.at(0);
+		AST_Node& then = children.at(1);
+		int toBranch = 1;
+		if(conditional.name == "[false]")
+		{
+			cout << "[WARN]Line " << conditional.lineNum << ": " << "This for statement will never be executed." << endl;
+			++numWarn;
+		}
+		else if(conditional.name == "[true]")
+		{
+			
+		}
+	}
+	else if(name == "<WhileStatement>")
+	{
+		AST_Node& conditional = children.at(0);
+		AST_Node& then = children.at(1);
+		int toBranch = 1;
+		int loopBranch = 256;
+		if(conditional.name == "[true]")
+		{
+			cout << "[WARN]Line " << conditional.lineNum << ": " << "This language has no method of breaking from an iteration that loops on [true]." << endl;
+			++numWarn;
+			
+		}
+		else if(conditional.name == "[false]")
+		{
+			cout << "[WARN]Line " << conditional.lineNum << ": " << "This loop will never be executed." << endl;
+			++numWarn;
+		}
+	}
 	/*
 	else if(name.length() == 3 && name.at(1) > 47 && name.at(1) < 58) // [0-9]
 	{
