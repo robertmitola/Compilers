@@ -577,7 +577,7 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 		cpPP();
 		runtime_environment[codePointer] = 2; // 2 bytes
 		cpPP();
-		if(name == "<!=>")
+		if(name == "<==>")
 		{
 			// true (z flag is 1) - load accumulator with contstant 1
 			runtime_environment[codePointer] = 169; // a9
@@ -590,7 +590,7 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 			runtime_environment[codePointer] = 0;
 			cpPP();
 		}
-		else // name  == "<==>"
+		else if(name == "<!=>")
 		{
 			// true (z flag is 1) - load accumulator with contstant 0
 			runtime_environment[codePointer] = 169; // a9
@@ -690,10 +690,11 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 			runtime_environment[codePointer] = codePointer-4;
 			cpPP();
 			runtime_environment[codePointer] = 0;
+			cpPP();
 			// branch n bytes if false
 			runtime_environment[codePointer] = 208; // d0
 			cpPP();
-			runtime_environment[codePointer] = 1; // n starts at 1
+			runtime_environment[codePointer] = 0; // n starts at 0
 			jumps.push_back(codePointer); // add this memory address to jump modifying queue
 			cpPP();
 			// evaluate the <block>
