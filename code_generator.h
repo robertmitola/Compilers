@@ -365,11 +365,12 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 			runtime_environment[codePointer] = codePointer-2; // address of last boolean push to memory
 			cpPP();
 			runtime_environment[codePointer] = 0;
-			// load x register with a constant representing "prit value in y register"
+			// load x register with a constant representing "print value in y register"
 			runtime_environment[codePointer] = 162; // a2
 			cpPP();
 			runtime_environment[codePointer] = 1; 
 			cpPP();
+			cout << "got here" << endl;
 		}
 		else // string literal
 		{
@@ -392,8 +393,6 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 	}
 	else if(name == "<==>" || name == "<!=>")
 	{
-		bool equals = false;
-		if(name == "<==>") equals = true;
 		AST_Node& left = children.at(0); // left hand side
 		int leftBool; // left hand stored bool compare value address
 		AST_Node& right = children.at(1); // right hand side
@@ -413,8 +412,6 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 			cpPP();
 			runtime_environment[codePointer] = num;
 			cpPP();
-			runtime_environment[codePointer] = 0;
-			cpPP();
 			// store accumulator in the unused memory address that is a part of the isntruction
 			runtime_environment[codePointer] = 141; // 8d
 			cpPP();
@@ -427,7 +424,7 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 		else if(left.name.length() == 3 && left.name.at(1) > 96 && left.name.at(1) < 123) // left hand id
 		{
 			// load accumulator from memory associated with the variabe
-			runtime_environment[codePointer] = 141; // ad
+			runtime_environment[codePointer] = 173; // ad
 			cpPP();
 			runtime_environment[codePointer] = 0;
 			addTemp(left, codePointer); // temp var
@@ -553,6 +550,7 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 			cpPP();
 			runtime_environment[codePointer] = codePointer - 2; // get stored value and put into x
 			cpPP();
+			runtime_environment[codePointer] = 0;
 		}
 		else // string literal 
 		{
@@ -571,8 +569,11 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 		cpPP();
 		runtime_environment[codePointer] = leftBool; // memory address of left
 		cpPP();
+		runtime_environment[codePointer] = 0;
 		// branch 3 bytes if not equal
 		runtime_environment[codePointer] = 208; //d0
+		cpPP();
+		runtime_environment[codePointer] = 3; // 3 bytes
 		cpPP();
 		if(name == "<==>")
 		{
