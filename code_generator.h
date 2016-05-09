@@ -277,10 +277,10 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 	}
 	else if(name == "<PrintStatement>")
 	{
-		AST_Node& rhs = children(0);
+		AST_Node& rhs = children.at(0);
 		if(rhs.name.length() == 3 && rhs.name.at(1) > 47 && rhs.name.at(1) < 58) // right hand digit
 		{
-			int num = left.name.at(1) - 48;
+			int num = rhs.name.at(1) - 48;
 			// load the x register with a constant representing "print value in y register"
 			runtime_environment[codePointer] = 162; // a2
 			cpPP();
@@ -311,7 +311,7 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 		}
 		else if(rhs.name == "[true]" || rhs.name == "[false]")
 		{
-			string key = rhs.name.substr(1, left.name.length()-2); // true / false
+			string key = rhs.name.substr(1, rhs.name.length()-2); // true / false
 			int addressOfString = stringsMap.at(key); // get the memory address of the string
 			// load the x register with a constant representing "print string at address in y register"
 			runtime_environment[codePointer] = 162; // a2
@@ -351,11 +351,22 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 		else if(rhs.name == "<==>" || rhs.name == "<!=>")
 		{
 			generateCode(rhs, stringsMap); // recurse on <==> or <!=>
-			
+			// final value of a nested boolean expression will be stored in the last memory address
+			// load y with the memory at this address
+			runtime_environment[codePointer] = 172; // ac
+			cpPP();
+			runtime_environment[codePointer] = codePointer-2; // address of last boolean push to memory
+			cpPP();
+			runtime_environment[codePointer] = 0;
+			// load x register with a constant representing "prit value in y register"
+			runtime_environment[codePointer] = 162; // a2
+			cpPP();
+			runtime_environment[codePointer] = 1; 
+			cpPP();
 		}
 		else // string literal
 		{
-			string key = rhs.name.substr(2, left.name.length()-4);
+			string key = rhs.name.substr(2, rhs.name.length()-4);
 			int addressOfString = stringsMap.at(key); // get the memory address of the string
 			// load the x register with a constant representing "print string at address in y register"
 			runtime_environment[codePointer] = 162; // a2
