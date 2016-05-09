@@ -28,7 +28,8 @@ class Code_Generator
 		int stopPointer; // points to where code should stop in the runtime environment
 		int value; // value for int expressions
 		unordered_map<string, Temp_Var> tempTable; // temporary variables table
-		vector<int> jumps; // alters jump values
+		vector<int> jumps; // alters jump values for ifstream
+		vector<int> loops; // alters jump values for loops (while statements)
 		void printRuntimeEnvironment(); // prints the runtime environment out
 		void addStrings(unordered_map<string, int>&); // adds string literals to runtime environment
 		void addTemps(AST_Node&); // adds temporary variables to the temp table
@@ -119,10 +120,11 @@ void Code_Generator::cpPP() // "code pointer plus plus"
 {
 	++codePointer; // increment the code pointer
 	// increment all jump values relevant
-	for (vector<int>::iterator it = jumps.begin() ; it != jumps.end(); ++it)
-	{
+	for(vector<int>::iterator it = jumps.begin() ; it != jumps.end(); ++it)
 		runtime_environment[*it] = runtime_environment[*it] + 1;
-	}
+	// decrement all loop values
+	for(vector<int>::iterator it = loops.begin() ; it != loops.end(); ++it)
+		runtime_environment[*it] = runtime_environment[*it] - 1;
 	if(codePointer > stopPointer) // if we ran out of memory
 	{
 		codePointer = stopPointer; // prevent trying to access unreachable memory
@@ -783,6 +785,7 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 		}
 		else // <==> or <!=>
 		{
+			int loopStart = codePointer+1;
 			generateCode(conditional, stringsMap);
 			// final value of a nested boolean expression will be stored in the last memory address
 			// load the x register with a constant representing true
@@ -806,7 +809,8 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 			cpPP();
 			// evaluate the <block>
 			generateCode(then, stringsMap);
-			int loopBranch = 256 - runtime_environment[jumps.back()]; // how much to loop around
+			//int loopBranch = 256 - runtime_environment[jumps.back()]; // how much to loop around
+			int loopBranch = 255 - (256 - loopStart); // loop all the way around to the conditional
 			jumps.pop_back(); // remove the jump address from modifying queue
 			// load x register with a 1
 			runtime_environment[codePointer] = 162; // a2
