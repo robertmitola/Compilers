@@ -1,0 +1,8 @@
+{
+	boolean b
+	b = true
+	print(((true != false) == (true == true)))
+	print(((true == true) != b))
+	print(((true == false) == (b != false)))
+}
+$
