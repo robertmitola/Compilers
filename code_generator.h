@@ -29,7 +29,7 @@ class Code_Generator
 		int value; // value for int expressions
 		unordered_map<string, Temp_Var> tempTable; // temporary variables table
 		vector<int> jumps; // alters jump values for ifstream
-		vector<int> loops; // alters jump values for loops (while statements)
+		vector<int> revertTo0; // fixes memory so loops can reuse comparisons
 		void printRuntimeEnvironment(); // prints the runtime environment out
 		void addStrings(unordered_map<string, int>&); // adds string literals to runtime environment
 		void addTemps(AST_Node&); // adds temporary variables to the temp table
@@ -122,9 +122,6 @@ void Code_Generator::cpPP() // "code pointer plus plus"
 	// increment all jump values relevant
 	for(vector<int>::iterator it = jumps.begin() ; it != jumps.end(); ++it)
 		runtime_environment[*it] = runtime_environment[*it] + 1;
-	// decrement all loop values
-	for(vector<int>::iterator it = loops.begin() ; it != loops.end(); ++it)
-		runtime_environment[*it] = runtime_environment[*it] - 1;
 	if(codePointer > stopPointer) // if we ran out of memory
 	{
 		codePointer = stopPointer; // prevent trying to access unreachable memory
@@ -420,6 +417,7 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 			runtime_environment[codePointer] = codePointer + 1;
 			cpPP();
 			runtime_environment[codePointer] = 0; // value will be stored here
+			revertTo0.push_back(codePointer); // to turn this memory back to 0
 			leftBool = codePointer; // this is where to eventually get the left variable
 			cpPP();
 		}
@@ -439,6 +437,7 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 			runtime_environment[codePointer] = codePointer + 1;
 			cpPP();
 			runtime_environment[codePointer] = 0; // value will be stored here
+			revertTo0.push_back(codePointer); // to turn this memory back to 0
 			leftBool = codePointer; // this is where to eventually get the left variable
 			cpPP();
 		}
@@ -457,6 +456,7 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 			runtime_environment[codePointer] = codePointer + 1;
 			cpPP();
 			runtime_environment[codePointer] = 0; // value will be stored here
+			revertTo0.push_back(codePointer); // to turn this memory back to 0
 			leftBool = codePointer; // this is where to eventually get the left variable
 			cpPP();
 		}
@@ -471,6 +471,7 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 			runtime_environment[codePointer] = codePointer + 1;
 			cpPP();
 			runtime_environment[codePointer] = 0; // value will be stored here
+			revertTo0.push_back(codePointer); // to turn this memory back to 0
 			leftBool = codePointer; // this is where to eventually get the left variable
 			cpPP();
 		}
@@ -489,6 +490,7 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 			runtime_environment[codePointer] = codePointer + 1;
 			cpPP();
 			runtime_environment[codePointer] = 0; // value will be stored here
+			revertTo0.push_back(codePointer); // to turn this memory back to 0
 			leftBool = codePointer; // this is where to eventually get the left variable
 			cpPP();
 		}
@@ -546,6 +548,7 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 			runtime_environment[codePointer] = codePointer + 1;
 			cpPP();
 			runtime_environment[codePointer] = 0; // value will be stored here
+			revertTo0.push_back(codePointer); // to turn this memory back to 0
 			cpPP();
 			// now we need to put the stored value into x register
 			runtime_environment[codePointer] = 174; // ae
@@ -645,6 +648,7 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 		runtime_environment[codePointer] = codePointer + 1;
 		cpPP();
 		runtime_environment[codePointer] = 0; // value will be stored here
+		revertTo0.push_back(codePointer); // to turn this memory back to 0
 		cpPP();
 	}
 	else if(name == "<+>")
@@ -780,12 +784,14 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 			// branch all the way around
 			runtime_environment[codePointer] = 208; // d0
 			cpPP();
-			runtime_environment[codePointer] = 256 - (codePointer-savedAddress);
+			runtime_environment[codePointer] = 255 - (codePointer-savedAddress);
 			cpPP();
 		}
 		else // <==> or <!=>
 		{
-			int loopStart = codePointer+1;
+			int loopStart = codePointer;
+			// evaluate conditional
+			cout << "loop start: " << loopStart << endl;
 			generateCode(conditional, stringsMap);
 			// final value of a nested boolean expression will be stored in the last memory address
 			// load the x register with a constant representing true
@@ -801,6 +807,26 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 			runtime_environment[codePointer] = 0;
 			int saved0Val = codePointer;
 			cpPP();
+			
+			//////////////////// Code Band-Aid //////////////////////////////////////////////////
+			// revert necessary memory addresses back to 0 so we don't get memory errors
+			for(vector<int>::iterator it = revertTo0.begin() ; it != revertTo0.end(); ++it)
+			{
+				// load accumulator 
+				runtime_environment[codePointer] = 169; // a9
+				cpPP();
+				runtime_environment[codePointer] = 0; // going to set them all to 0
+				cpPP();
+				// store accumulator
+				runtime_environment[codePointer] = 141; // 8d
+				cpPP();
+				runtime_environment[codePointer] = *it;
+				cpPP();
+				runtime_environment[codePointer] = 0;
+				cpPP();
+			}
+			//////////////////// Code Band-Aid //////////////////////////////////////////////////
+			
 			// branch n bytes if false
 			runtime_environment[codePointer] = 208; // d0
 			cpPP();
@@ -810,8 +836,9 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 			// evaluate the <block>
 			generateCode(then, stringsMap);
 			//int loopBranch = 256 - runtime_environment[jumps.back()]; // how much to loop around
-			int loopBranch = 255 - (256 - loopStart); // loop all the way around to the conditional
-			jumps.pop_back(); // remove the jump address from modifying queue
+			//int loopBranch = 255 - (256 - loopStart); // loop all the way around to the conditional
+			//cout << "loopBranch: " << loopBranch << endl;
+			//jumps.pop_back(); // remove the jump address from modifying queue
 			// load x register with a 1
 			runtime_environment[codePointer] = 162; // a2
 			cpPP();
@@ -827,8 +854,13 @@ void Code_Generator::generateCode(AST_Node& ast, unordered_map<string, int>& str
 			// loop - branch all the way to beginning of loop
 			runtime_environment[codePointer] = 208; // d0
 			cpPP();
+			//int loopBranch = ((256-codePointer)+loopStart);
+			int loopBranch = 255 - (codePointer-loopStart);
 			runtime_environment[codePointer] = loopBranch; // loop around
+			cout << "curaddress: " << codePointer << endl;
+			cout << "loopBranch: " << loopBranch << endl;
 			cpPP();
+			jumps.pop_back(); // remove the jump address from modifying queue
 		}
 	}
 	/*
